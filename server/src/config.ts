@@ -90,6 +90,10 @@ export function normalizeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
     if (v.length >= 2 && (v[0] === "'" || v[0] === '"') && v[v.length - 1] === v[0]) v = v.slice(1, -1).trim();
     if (v !== '') out[key.trim()] = v;
   }
+  // Enum-like values are case-insensitive (e.g. NODE_ENV=Production, LOG_LEVEL=INFO).
+  for (const key of ['NODE_ENV', 'LOG_LEVEL', 'OPENAI_QUICK_REASONING', 'OPENAI_DETAILED_REASONING']) {
+    if (out[key]) out[key] = out[key].toLowerCase();
+  }
   // ALLOWED_ORIGIN defaults to the Railway public domain (Railway provides RAILWAY_PUBLIC_DOMAIN to every
   // deployment that has a generated domain). An unresolved reference ("https://" or "${{…}}") counts as unset.
   const origin = out.ALLOWED_ORIGIN;

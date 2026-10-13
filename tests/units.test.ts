@@ -149,6 +149,11 @@ describe('config: tolerant Railway/dashboard values', () => {
     expect(c.modes.detailed.model).toBe('gpt-6-luna');
   });
 
+  it('accepts enum values in any case and empty PORT/LOG_LEVEL', () => {
+    const c = loadConfig({ ...env, ALLOWED_ORIGIN: 'http://localhost:5173', NODE_ENV: 'Production', LOG_LEVEL: 'INFO', OPENAI_QUICK_REASONING: 'None', PORT: '', TIMEZONE: '' } as NodeJS.ProcessEnv);
+    expect([c.NODE_ENV, c.LOG_LEVEL, c.OPENAI_QUICK_REASONING, c.PORT, c.TIMEZONE]).toEqual(['production', 'info', 'none', 3000, 'Asia/Tashkent']);
+  });
+
   it('explains a missing origin and points out misspelled variable names', () => {
     expect(() => loadConfig({ ...env, ALLOWED_ORGN: 'https://x.up.railway.app' } as NodeJS.ProcessEnv)).toThrow(
       /did you mean "ALLOWED_ORIGIN"[\s\S]*Generate Domain/,

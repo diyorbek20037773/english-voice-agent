@@ -1,0 +1,27 @@
+node_modules/
+dist/
+coverage/
+*.log
+
+# Secrets and local-only files (never commit)
+.env
+.env.*
+!.env.example
+railway-variables/
+secrets/
+*.key
+# API keys placed in files by hand (e.g. docs/apikey.md)
+**/apikey*
+**/*api-key*
+*.local.json
+*.local.env
+
+# The original n8n-era specification (kept locally, superseded)
+claude_code_railway_n8n_prompt*.md
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

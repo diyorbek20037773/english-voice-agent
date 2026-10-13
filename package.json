@@ -1,0 +1,55 @@
+{
+  "name": "english-voice-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal English voice interview-practice assistant: phone web app + Fastify backend calling OpenAI directly.",
+  "type": "module",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:server": "tsx watch --env-file-if-exists=.env server/src/index.ts",
+    "dev:web": "vite",
+    "build": "vite build && node scripts/build-server.mjs",
+    "build:web": "vite build",
+    "build:server": "node scripts/build-server.mjs",
+    "start": "node dist/server/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit && vitest run && vite build && node scripts/build-server.mjs && tsx scripts/secrets-scan.ts",
+    "setup:secrets": "tsx scripts/setup-secrets.ts",
+    "secrets:scan": "tsx scripts/secrets-scan.ts",
+    "smoke:real": "tsx scripts/smoke-real.ts",
+    "start:local": "node --env-file=.env dist/server/index.js",
+    "mock:openai": "node mock-openai/server.mjs"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.3",
+    "@fastify/rate-limit": "^11.2.1",
+    "@fastify/static": "^10.1.6",
+    "fastify": "^5.12.7",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "esbuild": "^0.28.2",
+    "railway": "3.15.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+# Optional: run the production container locally (Railway does not use this file).
+#   docker compose up --build        → http://localhost:3000
+# Uses your .env (OPENAI_API_KEY, APP_ACCESS_TOKEN). ALLOWED_ORIGIN is set for port 3000.
+name: english-voice-agent
+
+services:
+  web:
+    build: .
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      HOST: "::"
+      PORT: "3000"
+      TRUST_PROXY_HOPS: "0"
+      ALLOWED_ORIGIN: http://localhost:3000
+    ports:
+      - "127.0.0.1:3000:3000"

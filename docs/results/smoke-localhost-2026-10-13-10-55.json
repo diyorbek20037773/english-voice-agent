@@ -1,0 +1,268 @@
+{
+  "at": "2026-10-13T10:54:04.985Z",
+  "base": "http://localhost:3000",
+  "client": "win32 node v22.17.0",
+  "config": {
+    "modes": {
+      "quick": {
+        "model": "gpt-6-luna",
+        "reasoningEffort": "none"
+      },
+      "detailed": {
+        "model": "gpt-6-luna",
+        "reasoningEffort": "low"
+      }
+    },
+    "transcriptionModel": "gpt-live-transcribe",
+    "profileConfigured": false,
+    "dailyLimit": 200,
+    "answersToday": 20
+  },
+  "models": {
+    "checked": true,
+    "available": {
+      "gpt-6-luna": true,
+      "gpt-live-transcribe": true
+    }
+  },
+  "realtimeSession": {
+    "status": 200,
+    "ms": 440,
+    "tokenPrefix": "ek_",
+    "error": null
+  },
+  "answers": {
+    "quick": {
+      "firstTextMs": 783,
+      "totalMs": 1493,
+      "chars": 267,
+      "deltas": 69,
+      "end": {
+        "type": "answer.done",
+        "requestId": "a93ab13e-257a-4f79-869b-19fb5f3697c0",
+        "questionId": "smoke_1791888846897_fwz02g",
+        "truncated": false,
+        "replayed": false,
+        "model": "gpt-6-luna"
+      }
+    },
+    "follow": {
+      "firstTextMs": 1205,
+      "totalMs": 1770,
+      "chars": 172,
+      "deltas": 34,
+      "end": {
+        "type": "answer.done",
+        "requestId": "073701df-6f57-4998-9a3d-244874296a89",
+        "questionId": "smoke_1791888848390_ehd9l3",
+        "truncated": false,
+        "replayed": false,
+        "model": "gpt-6-luna"
+      }
+    },
+    "detailed": {
+      "firstTextMs": 1228,
+      "totalMs": 4945,
+      "chars": 1454,
+      "deltas": 310,
+      "end": {
+        "type": "answer.done",
+        "requestId": "35a4bf24-2dce-44d6-a028-12be302b0ba3",
+        "questionId": "smoke_1791888850160_98mk9z",
+        "truncated": false,
+        "replayed": false,
+        "model": "gpt-6-luna"
+      }
+    }
+  },
+  "latency": {
+    "summary": {
+      "runs": 20,
+      "ok": 20,
+      "firstText": {
+        "p50": 901,
+        "p95": 1353
+      },
+      "fullAnswer": {
+        "p50": 2323,
+        "p95": 2694
+      },
+      "over3sOrFailed": 0
+    },
+    "rows": [
+      {
+        "q": "What is the difference between a process and a thread?",
+        "firstTextMs": 1189,
+        "totalMs": 3225,
+        "ok": true
+      },
+      {
+        "q": "Explain what a REST API is.",
+        "firstTextMs": 1060,
+        "totalMs": 2410,
+        "ok": true
+      },
+      {
+        "q": "What is a race condition?",
+        "firstTextMs": 918,
+        "totalMs": 1614,
+        "ok": true
+      },
+      {
+        "q": "How does a hash map handle collisions?",
+        "firstTextMs": 1145,
+        "totalMs": 2555,
+        "ok": true
+      },
+      {
+        "q": "What is the CAP theorem?",
+        "firstTextMs": 839,
+        "totalMs": 1862,
+        "ok": true
+      },
+      {
+        "q": "What is the difference between SQL and NoSQL databases?",
+        "firstTextMs": 819,
+        "totalMs": 2561,
+        "ok": true
+      },
+      {
+        "q": "Explain database indexing.",
+        "firstTextMs": 1061,
+        "totalMs": 2488,
+        "ok": true
+      },
+      {
+        "q": "What is eventual consistency?",
+        "firstTextMs": 804,
+        "totalMs": 1789,
+        "ok": true
+      },
+      {
+        "q": "What does idempotent mean for an HTTP method?",
+        "firstTextMs": 828,
+        "totalMs": 1686,
+        "ok": true
+      },
+      {
+        "q": "What is the difference between TCP and UDP?",
+        "firstTextMs": 831,
+        "totalMs": 2074,
+        "ok": true
+      },
+      {
+        "q": "Explain dependency injection.",
+        "firstTextMs": 1353,
+        "totalMs": 2694,
+        "ok": true
+      },
+      {
+        "q": "What is a closure in JavaScript?",
+        "firstTextMs": 784,
+        "totalMs": 1811,
+        "ok": true
+      },
+      {
+        "q": "What is the event loop in Node.js?",
+        "firstTextMs": 846,
+        "totalMs": 2558,
+        "ok": true
+      },
+      {
+        "q": "How would you reverse a linked list?",
+        "firstTextMs": 772,
+        "totalMs": 1936,
+        "ok": true
+      },
+      {
+        "q": "What is Big O notation?",
+        "firstTextMs": 901,
+        "totalMs": 2026,
+        "ok": true
+      },
+      {
+        "q": "Explain the difference between authentication and authorization.",
+        "firstTextMs": 1076,
+        "totalMs": 1657,
+        "ok": true
+      },
+      {
+        "q": "What is a deadlock and how can you prevent it?",
+        "firstTextMs": 831,
+        "totalMs": 2438,
+        "ok": true
+      },
+      {
+        "q": "What is horizontal versus vertical scaling?",
+        "firstTextMs": 1218,
+        "totalMs": 2446,
+        "ok": true
+      },
+      {
+        "q": "How does HTTPS protect data in transit?",
+        "firstTextMs": 1089,
+        "totalMs": 2323,
+        "ok": true
+      },
+      {
+        "q": "What is a message queue used for?",
+        "firstTextMs": 1631,
+        "totalMs": 2615,
+        "ok": true
+      }
+    ]
+  },
+  "serverTimings": {
+    "rows": [
+      {
+        "metric": "firstPartialMs",
+        "count": 0,
+        "p50": null,
+        "p95": null
+      },
+      {
+        "metric": "endOfSpeechToFinalMs",
+        "count": 0,
+        "p50": null,
+        "p95": null
+      },
+      {
+        "metric": "answerRequestToFirstTextMs",
+        "count": 0,
+        "p50": null,
+        "p95": null
+      },
+      {
+        "metric": "endOfSpeechToFirstAnswerMs",
+        "count": 0,
+        "p50": null,
+        "p95": null
+      },
+      {
+        "metric": "fullAnswerMs",
+        "count": 0,
+        "p50": null,
+        "p95": null
+      },
+      {
+        "metric": "serverOpenAiHeadersMs",
+        "count": 41,
+        "p50": 606,
+        "p95": 1149
+      },
+      {
+        "metric": "serverFirstDeltaMs",
+        "count": 41,
+        "p50": 1042,
+        "p95": 1428
+      },
+      {
+        "metric": "serverTotalMs",
+        "count": 41,
+        "p50": 2072,
+        "p95": 2859
+      }
+    ],
+    "since": "2026-10-13T10:52:52.245Z"
+  }
+}

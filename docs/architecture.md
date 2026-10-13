@@ -17,6 +17,25 @@ No n8n, no database, no queues, no agent framework, no tool loops.
 └──────────────────────────────────────────────────┘
 ```
 
+## Audio sources
+
+| Source | How | Where |
+|---|---|---|
+| Mic | `getUserMedia` (echo cancellation, noise suppression, AGC) | phones and computers |
+| Laptop | `getDisplayMedia` audio from a tab ("Share tab audio") or the whole system ("Share system audio"); the video track is required by browsers but never sent | desktop Chrome/Edge |
+| Both | Laptop + Mic mixed with Web Audio (`MediaStreamAudioDestinationNode`) into one WebRTC track; nothing is routed to the speakers | desktop Chrome/Edge (use headphones) |
+
+The VAD analyses the combined signal. Sharing ending ("Stop sharing") or a mic interruption stops
+listening with a clear message.
+
+## UI
+
+Chat-style, monochrome (white background, black text and controls, neutral greys). Questions appear
+as right-aligned bubbles, answers stream inline below them, the page follows the newest text unless
+the user scrolled up. A sticky bottom dock holds the live transcript, mode toggles
+(Manual/Auto, Quick/Detailed, Mic/Laptop/Both), Start/Pause, Answer, Stop, Clear and the composer
+(Enter sends on desktop).
+
 ## Request flows
 
 **Realtime session.** `POST /api/realtime/session` (authenticated, 30/hour) creates an ephemeral
@@ -60,7 +79,8 @@ Logs contain timings, token counts and error codes — never questions, answers,
 
 ## Known limits
 
-- The phone mic hears the room, not another laptop's meeting audio.
+- A phone can only use its microphone (it hears the laptop only through the laptop's speakers).
+  Digital laptop audio needs the app open in desktop Chrome/Edge on that laptop.
 - iOS may suspend the mic when Safari is backgrounded; the app detects it and asks to restart.
 - VAD is loudness-based; the "complete question" check is a heuristic, not semantic understanding;
   no speaker identification.

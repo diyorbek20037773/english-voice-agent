@@ -1,9 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { api, ApiError } from './api/client.ts';
 import { streamAnswer } from './api/answer-stream.ts';
-import { AnswerCard, type AnswerItem } from './components/AnswerCard.tsx';
+import { AssistantMessage, UserMessage, type AnswerItem } from './components/Message.tsx';
 import { SettingsPanel } from './components/Settings.tsx';
-import { RealtimeTranscriber, VOICE_ERROR_MESSAGES, type TurnTimings, type VoiceState } from './voice/transcriber.ts';
+import {
+  RealtimeTranscriber,
+  VOICE_ERROR_MESSAGES,
+  canCaptureLaptopAudio,
+  type AudioSource,
+  type TurnTimings,
+  type VoiceState,
+} from './voice/transcriber.ts';
 import type { TurnResult } from './voice/turns.ts';
 import { assessQuestion, joinTranscript } from './voice/question.ts';
 import type { PracticeSessionResponse, RealtimeSessionResponse } from '../../shared/api-types.ts';
@@ -35,7 +42,32 @@ function savePref(key: string, value: string | number): void {
 
 const newId = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`);
 
+function Segmented<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="segmented" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button key={o.value} type="button" className={value === o.value ? 'on' : ''} aria-pressed={value === o.value} disabled={disabled} onClick={() => onChange(o.value)}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
+  const laptopCapable = canCaptureLaptopAudio();
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [speaking, setSpeaking] = useState(false);
   const [level, setLevel] = useState(0);
@@ -44,6 +76,9 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [inputMode, setInputMode] = useState<InputMode>(() => loadPref('eva.inputMode', (v) => (v === 'auto' || v === 'manual' ? v : null), 'manual'));
   const [answerMode, setAnswerMode] = useState<AnswerMode>(() =>
     loadPref('eva.answerMode', (v) => (v === 'quick' || v === 'detailed' ? v : null), 'quick'),
+  );
+  const [source, setSource] = useState<AudioSource>(() =>
+    laptopCapable ? loadPref('eva.source', (v) => (v === 'mic' || v === 'laptop' || v === 'both' ? v : null), 'mic') : 'mic',
   );
   const [silenceMs, setSilenceMs] = useState<number>(() =>
     loadPref('eva.silenceMs', (v) => (Number(v) >= 300 && Number(v) <= 3000 ? Number(v) : null), 800),
@@ -61,6 +96,7 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
   const heldRef = useRef({ text: '', turn: null as TurnTimings | null });
   const graceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSpeechAt = useRef(Date.now());
+  const stickToBottom = useRef(true);
 
   const ensureSession = useCallback(async (): Promise<string> => {
     if (sessionRef.current) return sessionRef.current;
@@ -74,6 +110,19 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
       if (err instanceof ApiError && err.status === 401) onLoggedOut();
     });
   }, [ensureSession, onLoggedOut]);
+
+  // Like a chat: follow the newest text while the user is at the bottom; don't yank them back if they scrolled up.
+  useEffect(() => {
+    const onScroll = () => {
+      stickToBottom.current = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 160;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  useLayoutEffect(() => {
+    // Scroll to the true page bottom: the sticky dock sits after the thread, so the newest text lands just above it.
+    if (stickToBottom.current && answers.length > 0) window.scrollTo({ top: document.documentElement.scrollHeight });
+  }, [answers]);
 
   const patchAnswer = useCallback((questionId: string, patch: Partial<AnswerItem> | ((a: AnswerItem) => Partial<AnswerItem>)) => {
     setAnswers((list) => list.map((a) => (a.questionId === questionId ? { ...a, ...(typeof patch === 'function' ? patch(a) : patch) } : a)));
@@ -106,9 +155,10 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
       }
       const abort = new AbortController();
       currentRef.current = { questionId, abort };
+      stickToBottom.current = true;
       setAnswers((list) => [
-        { questionId, question: question.replace(/^Continue: /, ''), mode, kind: opts.kind ?? 'question', status: 'waiting', text: '', truncated: false, replayed: false },
         ...list,
+        { questionId, question: question.replace(/^Continue: /, ''), mode, kind: opts.kind ?? 'question', status: 'waiting', text: '', truncated: false, replayed: false },
       ]);
 
       const requestAt = performance.now();
@@ -126,7 +176,7 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
               (ev) => {
                 if (currentRef.current?.questionId !== questionId && ev.type === 'answer.delta') return; // stale
                 if (ev.type === 'answer.delta') {
-                  // First text is rendered in the same React update (within one frame). Not measured with
+                  // First text renders in the same React update (within one frame). Not measured with
                   // requestAnimationFrame: browsers pause it in background tabs, which skews timings.
                   const first = firstTextAt === null;
                   if (first) firstTextAt = performance.now();
@@ -164,7 +214,7 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
       }
 
       // Timing-only report (no text).
-      if (doneAt !== null && firstTextAt !== null && firstTextAt > 0) {
+      if (doneAt !== null && firstTextAt !== null) {
         const t = opts.turn;
         const metrics: Record<string, number> = { answerRequestToFirstTextMs: firstTextAt - requestAt, fullAnswerMs: (doneAt as number) - requestAt };
         if (t) {
@@ -212,7 +262,7 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
       } else if (result.status === 'timeout') {
         setTyped(joinTranscript(heldRef.current.text, result.text));
         clearHeld();
-        setBanner({ kind: 'info', text: 'The final transcript did not arrive in time. Check the text in the question box and press Ask.' });
+        setBanner({ kind: 'info', text: 'The final transcript did not arrive in time. Check the text in the message box and press Send.' });
       } else if (result.status === 'empty') {
         if (force && heldRef.current.text) return submitHeld();
         if (force) setBanner({ kind: 'info', text: 'No speech was captured. Speak, then press Answer — or type your question.' });
@@ -246,14 +296,15 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
         },
         onAutoTurn: (result, timings) => handleTurnRef.current(result, timings, false),
       },
-      { mode: inputMode, silenceMs },
+      { mode: inputMode, silenceMs, source },
     );
     transcriberRef.current = t;
     return t;
-  }, [inputMode, silenceMs]);
+  }, [inputMode, silenceMs, source]);
 
   useEffect(() => transcriberRef.current?.setMode(inputMode), [inputMode]);
   useEffect(() => transcriberRef.current?.setSilenceMs(silenceMs), [silenceMs]);
+  useEffect(() => transcriberRef.current?.setSource(source), [source]);
 
   // iOS can suspend the microphone in the background; check when we come back.
   useEffect(() => {
@@ -280,7 +331,7 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
     return () => clearInterval(id);
   }, [voiceActive, voiceState]);
 
-  // Release the microphone when leaving the page.
+  // Release the microphone / audio sharing when leaving the page.
   useEffect(() => () => transcriberRef.current?.stop(), []);
 
   const answering = answers.some((a) => a.status === 'waiting' || a.status === 'streaming');
@@ -296,21 +347,21 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
     if (voiceState === 'paused') t.resume();
     else t.pause();
   };
+  const sendTyped = () => {
+    if (!typed.trim()) return;
+    void ask({ question: typed, inputMode: 'typed' });
+    setTyped('');
+  };
   const onAnswer = async () => {
     const t = transcriberRef.current;
     if (t && voiceActive) {
       const { result, timings } = await t.commitTurn();
-      if (result.status === 'empty' && !heldRef.current.text && typed.trim()) {
-        void ask({ question: typed, inputMode: 'typed' });
-        setTyped('');
-        return;
-      }
+      if (result.status === 'empty' && !heldRef.current.text && typed.trim()) return sendTyped();
       handleTurn(result, timings, true);
     } else if (typed.trim()) {
-      void ask({ question: typed, inputMode: 'typed' });
-      setTyped('');
+      sendTyped();
     } else {
-      setBanner({ kind: 'info', text: 'Press Start Listening to speak, or type a question.' });
+      setBanner({ kind: 'info', text: 'Press Start to listen, or type a question.' });
     }
   };
   const onStop = () => {
@@ -336,10 +387,12 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
     clearHeld();
     transcriberRef.current?.clearTurn();
   };
-  const onAskTyped = () => {
-    if (!typed.trim()) return;
-    void ask({ question: typed, inputMode: 'typed' });
-    setTyped('');
+  const onComposerKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Desktop: Enter sends, Shift+Enter adds a line. Touch keyboards: Enter adds a line, use the send button.
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && matchMedia('(pointer: fine)').matches) {
+      e.preventDefault();
+      sendTyped();
+    }
   };
   const onLogout = async () => {
     transcriberRef.current?.stop();
@@ -347,163 +400,184 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
     onLoggedOut();
   };
 
-  const status: { label: string; tone: string } =
+  const status =
     voiceState === 'error'
-      ? { label: 'Error', tone: 'error' }
+      ? 'Error'
       : voiceState === 'transcribing'
-        ? { label: 'Transcribing…', tone: 'busy' }
+        ? 'Transcribing…'
         : answering
-          ? { label: 'Answering…', tone: 'busy' }
+          ? 'Answering…'
           : voiceState === 'connecting'
-            ? { label: 'Connecting…', tone: 'busy' }
+            ? 'Connecting…'
             : voiceState === 'paused'
-              ? { label: 'Paused', tone: 'paused' }
+              ? 'Paused'
               : voiceState === 'listening'
-                ? { label: 'Listening', tone: 'live' }
-                : { label: 'Ready', tone: 'idle' };
+                ? 'Listening'
+                : 'Ready';
+  const busyStatus = status.endsWith('…');
+  const sourceName = source === 'mic' ? 'Mic' : source === 'laptop' ? 'Laptop audio' : 'Laptop + mic';
+  const composerRows = Math.min(6, Math.max(1, typed.split('\n').length));
 
   return (
     <div className="app">
       <header className="topbar">
-        <h1>Voice Practice</h1>
+        <span className="brand">Voice Practice</span>
         {voiceActive && (
-          <span className={`mic-badge ${voiceState === 'paused' ? 'paused' : 'on'}`} aria-label={voiceState === 'paused' ? 'Microphone paused' : 'Microphone on'}>
+          <span className={`mic-badge ${voiceState === 'paused' ? 'paused' : 'on'}`}>
             <span className="mic-dot" />
-            {voiceState === 'paused' ? 'Mic paused' : 'Mic on'}
+            {sourceName} {voiceState === 'paused' ? 'paused' : 'on'}
           </span>
         )}
-        <span className={`status-pill tone-${status.tone}`} role="status" aria-live="polite">
+        <span className={`status ${busyStatus ? 'busy' : ''} ${voiceState === 'listening' && !answering ? 'live' : ''}`} role="status" aria-live="polite">
           <span className="dot" />
-          {status.label}
+          {status}
         </span>
-        <button type="button" className="btn small ghost" onClick={() => setShowSettings(true)} aria-label="Settings">
+        <button type="button" className="icon-btn" onClick={() => setShowSettings(true)} aria-label="Settings">
           ⚙
         </button>
       </header>
 
-      {banner && (
-        <div className={`banner ${banner.kind}`} role={banner.kind === 'error' ? 'alert' : 'status'}>
-          <p>{banner.text}</p>
-          <button type="button" className="btn small ghost" onClick={() => setBanner(null)} aria-label="Dismiss">
-            ✕
-          </button>
-        </div>
-      )}
-
-      <section className="toggles" aria-label="Modes">
-        <div className="segmented" role="group" aria-label="Input mode">
-          {(['manual', 'auto'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              className={inputMode === m ? 'on' : ''}
-              aria-pressed={inputMode === m}
-              onClick={() => {
-                setInputMode(m);
-                savePref('eva.inputMode', m);
-                if (m === 'manual') clearHeld();
-              }}
-            >
-              {m === 'manual' ? 'Manual' : 'Auto'}
-            </button>
-          ))}
-        </div>
-        <div className="segmented" role="group" aria-label="Answer length">
-          {(['quick', 'detailed'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              className={answerMode === m ? 'on' : ''}
-              aria-pressed={answerMode === m}
-              onClick={() => {
-                setAnswerMode(m);
-                savePref('eva.answerMode', m);
-              }}
-            >
-              {m === 'quick' ? 'Quick' : 'Detailed'}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="controls" aria-label="Controls">
-        {!voiceActive ? (
-          <button type="button" className="btn primary big" onClick={onStart}>
-            Start Listening
-          </button>
+      <main className="thread" aria-label="Conversation">
+        {answers.length === 0 ? (
+          <div className="empty">
+            <h1>Ready when you are.</h1>
+            <p>Press Start and ask a technical interview question in English — or type it below.</p>
+            {laptopCapable && <p className="small">To use the audio of a Zoom/Meet call on this computer, choose Laptop or Both before Start.</p>}
+          </div>
         ) : (
-          <button type="button" className="btn big" onClick={onPause} disabled={voiceState === 'connecting'}>
-            {voiceState === 'paused' ? 'Resume' : 'Pause'}
-          </button>
+          answers.map((a) => (
+            <Fragment key={a.questionId}>
+              <UserMessage item={a} />
+              <AssistantMessage
+                item={a}
+                onContinue={(item) => void ask({ question: `Continue: ${item.question}`, inputMode: 'typed', kind: 'continue', continueOf: item.questionId })}
+                onRetry={(item) => void ask({ question: item.question, inputMode: 'typed' })}
+              />
+            </Fragment>
+          ))
         )}
-        <button type="button" className="btn accent big" onClick={() => void onAnswer()} disabled={voiceState === 'transcribing' || voiceState === 'connecting'}>
-          Answer
-        </button>
-        <button type="button" className="btn big" onClick={onStop} disabled={!voiceActive}>
-          Stop
-        </button>
-        <button type="button" className="btn big" onClick={onClear}>
-          Clear
-        </button>
-      </section>
-      {voiceActive && (
-        <div className="level" aria-hidden="true">
-          <div className={`level-bar ${speaking ? 'speaking' : ''}`} style={{ transform: `scaleX(${voiceState === 'paused' ? 0 : level})` }} />
-        </div>
-      )}
-      {inputMode === 'auto' && voiceActive && (
-        <p className="hint">Auto: answers after {silenceMs} ms of silence once the question sounds complete. Answer works any time.</p>
-      )}
+      </main>
 
-      <section className="panel live" aria-label="Live transcript">
-        <div className="panel-head">
-          <h2>Live transcript</h2>
-          {(liveText || held) && (
-            <button type="button" className="btn small ghost" onClick={onEditTranscript}>
-              Edit
+      <footer className="dock">
+        {banner && (
+          <div className={`banner ${banner.kind}`} role={banner.kind === 'error' ? 'alert' : 'status'}>
+            <span>{banner.kind === 'error' ? '⚠ ' : ''}{banner.text}</span>
+            <button type="button" className="icon-btn small" onClick={() => setBanner(null)} aria-label="Dismiss">
+              ✕
+            </button>
+          </div>
+        )}
+
+        {(voiceActive || held || liveText) && (
+          <div className="live" aria-label="Live transcript">
+            <p className="live-text" aria-live="polite">
+              {held && <span className="held">{held} </span>}
+              {live.length === 0 && !held ? (
+                <span className="placeholder">{voiceState === 'paused' ? 'Paused.' : 'Listening… speak in English.'}</span>
+              ) : (
+                live.map((i, idx) => (
+                  <span key={idx} className={i.final ? 'final' : 'partial'}>
+                    {i.text}{' '}
+                  </span>
+                ))
+              )}
+            </p>
+            {(liveText || held) && (
+              <button type="button" className="link-btn" onClick={onEditTranscript}>
+                Edit
+              </button>
+            )}
+          </div>
+        )}
+        {held && <p className="hint">Waiting for the rest of the question… press Answer to send now.</p>}
+        {voiceActive && (
+          <div className="level" aria-hidden="true">
+            <div className={`level-bar ${speaking ? 'speaking' : ''}`} style={{ transform: `scaleX(${voiceState === 'paused' ? 0 : level})` }} />
+          </div>
+        )}
+
+        <div className="toolbar">
+          <Segmented
+            label="Input mode"
+            value={inputMode}
+            options={[
+              { value: 'manual', label: 'Manual' },
+              { value: 'auto', label: 'Auto' },
+            ]}
+            onChange={(m) => {
+              setInputMode(m);
+              savePref('eva.inputMode', m);
+              if (m === 'manual') clearHeld();
+            }}
+          />
+          <Segmented
+            label="Answer length"
+            value={answerMode}
+            options={[
+              { value: 'quick', label: 'Quick' },
+              { value: 'detailed', label: 'Detailed' },
+            ]}
+            onChange={(m) => {
+              setAnswerMode(m);
+              savePref('eva.answerMode', m);
+            }}
+          />
+          {laptopCapable && (
+            <Segmented
+              label="Audio source"
+              value={source}
+              disabled={voiceActive}
+              options={[
+                { value: 'mic', label: 'Mic' },
+                { value: 'laptop', label: 'Laptop' },
+                { value: 'both', label: 'Both' },
+              ]}
+              onChange={(s) => {
+                setSource(s);
+                savePref('eva.source', s);
+              }}
+            />
+          )}
+        </div>
+
+        <div className="controls">
+          {!voiceActive ? (
+            <button type="button" className="btn primary" onClick={onStart}>
+              Start
+            </button>
+          ) : (
+            <button type="button" className="btn" onClick={onPause} disabled={voiceState === 'connecting'}>
+              {voiceState === 'paused' ? 'Resume' : 'Pause'}
             </button>
           )}
-        </div>
-        <p className="live-text" aria-live="polite">
-          {held && <span className="final held">{held} </span>}
-          {live.length === 0 && !held ? (
-            <span className="muted">{voiceActive ? 'Speak now…' : 'Press Start Listening and speak in English.'}</span>
-          ) : (
-            live.map((i, idx) => (
-              <span key={idx} className={i.final ? 'final' : 'partial'}>
-                {i.text}{' '}
-              </span>
-            ))
-          )}
-        </p>
-        {held && <p className="muted small">Waiting for the rest of the question… (press Answer to send now)</p>}
-      </section>
-
-      <section className="panel typed" aria-label="Typed question">
-        <label htmlFor="typed-question">
-          <h2>Question</h2>
-        </label>
-        <textarea id="typed-question" rows={3} maxLength={2000} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Type or edit a question…" />
-        <div className="row end">
-          <button type="button" className="btn primary" onClick={onAskTyped} disabled={!typed.trim()}>
-            Ask
+          <button type="button" className="btn primary" onClick={() => void onAnswer()} disabled={voiceState === 'transcribing' || voiceState === 'connecting'}>
+            Answer
+          </button>
+          <button type="button" className="btn" onClick={onStop} disabled={!voiceActive}>
+            Stop
+          </button>
+          <button type="button" className="btn" onClick={onClear}>
+            Clear
           </button>
         </div>
-      </section>
 
-      <section className="answers" aria-label="Answers">
-        <h2 className="sr-only">Answers</h2>
-        {answers.length === 0 && <p className="muted center">Answers appear here.</p>}
-        {answers.map((a, idx) => (
-          <AnswerCard
-            key={a.questionId}
-            item={a}
-            latest={idx === 0}
-            onContinue={(item) => void ask({ question: `Continue: ${item.question}`, inputMode: 'typed', kind: 'continue', continueOf: item.questionId })}
-            onRetry={(item) => void ask({ question: item.question, inputMode: 'typed' })}
+        <div className="composer">
+          <textarea
+            aria-label="Message"
+            rows={composerRows}
+            maxLength={2000}
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            onKeyDown={onComposerKey}
+            placeholder="Type or edit a question…"
           />
-        ))}
-      </section>
+          <button type="button" className="send" onClick={sendTyped} disabled={!typed.trim()} aria-label="Send">
+            ↑
+          </button>
+        </div>
+        {inputMode === 'auto' && voiceActive && <p className="hint">Auto: answers after {silenceMs} ms of silence once the question sounds complete.</p>}
+        {source === 'both' && !voiceActive && <p className="hint">Both: use headphones, otherwise the laptop speakers are heard twice.</p>}
+      </footer>
 
       {showSettings && (
         <SettingsPanel

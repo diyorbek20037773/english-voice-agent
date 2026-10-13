@@ -13,6 +13,8 @@ Token:   browser ─POST /api/realtime/session─▶ backend ─POST /v1/realtim
 Answer:  browser ─POST /api/answer─▶ backend ─POST /v1/responses (stream)─▶ OpenAI ─SSE─▶ backend ─SSE─▶ browser
 ```
 
+- Audio sources (web/src/voice/transcriber.ts): Mic (getUserMedia), Laptop (getDisplayMedia tab/system
+  audio, desktop Chrome/Edge), Both (Web Audio mix). UI is monochrome chat-style (white/black only).
 - Audio never touches the backend. The permanent `OPENAI_API_KEY` never leaves the backend.
 - `gpt-live-transcribe` has no server VAD: `turn_detection: null`; the browser commits turns with
   `input_audio_buffer.commit` (Manual: Answer button; Auto: energy VAD + silence threshold + a local

@@ -54,6 +54,8 @@ text (~0.9 s) + Auto-mode silence threshold (0.8 s) — **estimated, not yet mea
 | Browser UI (desktop Chrome, MOCKED OpenAI, throwaway token) | unlock, typed question streaming, code block + Copy, Detailed toggle, insufficient-credit error card, Settings panel; no console errors. Found and fixed: first-text timing used requestAnimationFrame (paused in background tabs) |
 | Secret scan | no secrets in `dist/web` or committable files |
 | `.railway/railway.ts` | type-checks against `railway@3.15.0`; never applied |
+| Monochrome chat UI (update, desktop Chrome, MOCKED OpenAI) | empty state, chronological thread with question bubbles, streamed answer with code block, Copy, error note, Settings, Mic/Laptop/Both selector shown on desktop; found and fixed: newest answer hidden behind the sticky dock (now scrolls to page bottom) |
+| Automated tests (update) | 66/66 pass (adds laptop-audio capability detection and `display-capture` permission header) |
 
 ## Not verified yet (needs owner access or a device)
 
@@ -61,6 +63,9 @@ text (~0.9 s) + Auto-mode silence threshold (0.8 s) — **estimated, not yet mea
 - Real iPhone Safari microphone capture, Pause/Stop mic indicator, background interruption
   (checklist: docs/manual-iphone-test.md). Android Chrome likewise.
 - Real browser microphone in desktop Chrome (WebRTC path verified with aiortc, not a browser).
+- Laptop audio capture (`getDisplayMedia` tab/system audio) and Both mixing: implemented and
+  type-checked, but the browser share picker cannot be automated here — needs the owner's run
+  (checklist section E).
 - Auto-mode silence threshold tuning with real speech; end-of-speech → first answer on a phone.
 - Whether aborting a streaming request stops OpenAI billing for already-generated tokens.
 

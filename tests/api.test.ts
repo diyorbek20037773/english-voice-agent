@@ -316,6 +316,7 @@ describe('limits and static hosting', () => {
     expect(csp).toContain("connect-src 'self' https://api.openai.com");
     expect(csp).toContain("script-src 'self'");
     expect(res.headers.get('permissions-policy')).toContain('microphone=(self)');
+    expect(res.headers.get('permissions-policy')).toContain('display-capture=(self)');
     await app.close();
   });
 

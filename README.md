@@ -8,9 +8,13 @@ gapingizni jonli ravishda inglizcha matnga aylantiradi → savolingizga inglizch
 Telefon mikrofoni → OpenAI Realtime (WebRTC) → jonli transkript. Savol → backend → OpenAI →
 javob oqimi → telefon ekrani. n8n ham, maʼlumotlar bazasi ham yoʻq.
 
-> ⚠️ **Muhim cheklov:** telefon mikrofoni faqat **sizning ovozingizni** (xonadagi ovozni) eshitadi.
-> Boshqa noutbukdagi Zoom/Meet uchrashuvining ovozini (tizim ovozini) avtomatik olmaydi.
-> Avval faqat oʻz ovozingiz bilan sinab koʻring.
+> **Ovoz manbalari (Mic / Laptop / Both):**
+> - **Mic** — mikrofon: sizning ovozingiz va noutbuk karnayidan baland chiqqan ovoz. Telefonda faqat shu.
+> - **Laptop** — noutbukning oʻz ovozi (Zoom, Meet, YouTube…) raqamli, toza olinadi; quloqchinda ham
+>   ishlaydi. Faqat kompyuterdagi **Chrome yoki Edge** da.
+> - **Both** — Laptop + Mic birga (bunda quloqchin taqing, aks holda karnay ovozi ikki marta eshitiladi).
+>
+> Zoom'dagi boshqa odamlarning ovozini transkripsiya qilishdan oldin ularning roziligini oling.
 
 ---
 
@@ -49,8 +53,8 @@ Brauzerda oching: **http://localhost:5173**
 
 - "Access token" maydoniga `.env` faylidagi `APP_ACCESS_TOKEN` qiymatini kiriting
   (`.env` ni VS Code'da ochib koʻring).
-- Pastdagi **Question** maydoniga savol yozib **Ask** bosing — javob oqim boʻlib chiqadi.
-- **Start Listening** → mikrofonga ruxsat bering → inglizcha gapiring → **Answer**.
+- Pastdagi maydonga savol yozib **Enter** (yoki **↑**) bosing — javob oqim boʻlib chiqadi.
+- **Start** → ruxsat bering → inglizcha gapiring → **Answer**.
 
 Hammasini tekshirish (TypeScript, 64 ta test, build, maxfiy kalit skaneri):
 
@@ -77,20 +81,34 @@ Tekshirish (kompyuterdan, ~$0.01 dan kam):
 pnpm smoke:real --url https://SIZNING-MANZIL.up.railway.app --env railway-variables/web.env --latency 20
 ```
 
-## 4. Telefonda ishlatish
+## 4. Ishlatish
 
 | Tugma | Vazifasi |
 |---|---|
-| **Start Listening** | Mikrofonni yoqadi (ruxsat soʻraydi), OpenAI bilan ulanadi |
+| **Start** | Tanlangan manbani yoqadi (ruxsat soʻraydi), OpenAI bilan ulanadi |
+| **Mic / Laptop / Both** | Ovoz manbai (faqat kompyuterda; Start'dan oldin tanlanadi) |
 | **Pause / Resume** | Vaqtincha tinglamaydi (bu paytda audio yuborilmaydi — pul sarflanmaydi) |
 | **Answer** | Hozirgi gapni yakunlab, savol sifatida yuboradi |
 | **Stop** | Mikrofonni butunlay oʻchiradi |
 | **Clear** | Transkript va javoblarni tozalaydi |
 | **Manual / Auto** | Manual: Answer bosasiz. Auto: ~0.8 s jimlikdan keyin oʻzi yuboradi |
 | **Quick / Detailed** | Qisqa yoki batafsil javob |
-| **Edit** | Transkriptni qoʻlda tuzatib, keyin **Ask** |
+| **Edit** | Transkriptni pastdagi maydonga oladi: tuzating va **↑** (yoki Enter) bosing |
 
-Kesilgan javob boʻlsa **Continue** tugmasi chiqadi. Kod bloklarida **Copy** tugmasi bor.
+Javoblar ChatGPT'dagidek soʻzma-soʻz oqim (stream) boʻlib chiqadi. Kesilgan javob boʻlsa **Continue**,
+kod bloklarida va har javob ostida **Copy** bor.
+
+### Noutbukdagi Zoom/Meet ovozini olish (Laptop yoki Both)
+
+1. Ilovani noutbukda **Chrome** yoki **Edge** da oching (Railway manzili yoki `http://localhost:5173`).
+2. **Laptop** (yoki **Both**) ni tanlang → **Start**.
+3. Brauzer "nimani ulashasiz" oynasini ochadi:
+   - Zoom/Meet **brauzer tabida** boʻlsa: **Chrome tab** → oʻsha tabni tanlang → **"Share tab audio"** yoqilgan boʻlsin.
+   - **Zoom ilovasi** (desktop) boʻlsa: **Entire screen** → **"Share system audio"** ni yoqing.
+4. **Share** bosing. Tepada "Laptop audio on" chiqadi; transkript paydo boʻladi.
+5. Toʻxtatish: **Stop** (yoki brauzerdagi "Stop sharing").
+
+Ekran ulashish oynasi faqat ovozni olish uchun kerak — tasvir hech qayerga yuborilmaydi.
 5 daqiqa gapirmasangiz, tejash uchun tinglash avtomatik toʻxtaydi.
 
 ## 5. Narxlar (2026-10-13 holatiga)
@@ -122,7 +140,10 @@ Claude Max — bu faqat dasturlash uchun; ilovaning OpenAI xarajatini qoplamaydi
 | "Microphone access was blocked" | iPhone: Settings → Safari → Microphone → Allow; sahifani yangilang |
 | "The microphone needs HTTPS" | Railway `https://` manzilidan oching (LAN `http://` ishlamaydi) |
 | "insufficient credit or quota" | OpenAI Billing'da kredit qoʻshing |
-| "Microphone capture was interrupted" | Ilovaga qaytib, **Start Listening** ni qayta bosing (iOS fonda mikrofonni toʻxtatadi) |
+| "Microphone capture was interrupted" | Ilovaga qaytib, **Start** ni qayta bosing (iOS fonda mikrofonni toʻxtatadi) |
+| "No laptop audio was shared" | Start → oynada **"Share tab audio"** / **"Share system audio"** belgisini yoqing |
+| "Capturing laptop audio needs Chrome or Edge" | Kompyuterda Chrome/Edge ishlating; telefonda faqat **Mic** |
+| Both rejimida soʻzlar takrorlanadi | Quloqchin taqing yoki faqat **Laptop** ni tanlang |
 | Javob kelmaydi | Settings (⚙) → **Check model access** |
 
 Batafsil: [docs/architecture.md](docs/architecture.md), [docs/testing.md](docs/testing.md),

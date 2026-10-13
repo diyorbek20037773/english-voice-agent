@@ -156,3 +156,17 @@ describe('assessQuestion', () => {
     expect(assessQuestion(text)).toBe(expected);
   });
 });
+
+describe('canCaptureLaptopAudio', () => {
+  const gdm = { getDisplayMedia: () => undefined };
+  it('is available on desktop Chrome/Edge with getDisplayMedia', async () => {
+    const { canCaptureLaptopAudio } = await import('../web/src/voice/transcriber.ts');
+    expect(canCaptureLaptopAudio({ userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/141.0 Safari/537.36', mediaDevices: gdm })).toBe(true);
+  });
+  it('is not offered on phones or without getDisplayMedia', async () => {
+    const { canCaptureLaptopAudio } = await import('../web/src/voice/transcriber.ts');
+    expect(canCaptureLaptopAudio({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) Mobile/15E148 Safari/604.1', mediaDevices: gdm })).toBe(false);
+    expect(canCaptureLaptopAudio({ userAgent: 'Mozilla/5.0 (Linux; Android 15) Chrome/141.0 Mobile Safari/537.36', mediaDevices: gdm })).toBe(false);
+    expect(canCaptureLaptopAudio({ userAgent: 'Mozilla/5.0 (Windows NT 10.0) Chrome/141.0', mediaDevices: {} })).toBe(false);
+  });
+});

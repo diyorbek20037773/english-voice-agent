@@ -26,7 +26,6 @@ export default defineRailway(() => {
       HOST: '::',
       PORT: '3000',
       TRUST_PROXY_HOPS: '1',
-      ALLOWED_ORIGIN: 'https://${{RAILWAY_PUBLIC_DOMAIN}}',
       OPENAI_TRANSCRIPTION_MODEL: 'gpt-live-transcribe',
       OPENAI_ANSWER_MODEL: 'gpt-6-luna',
       OPENAI_QUICK_REASONING: 'none',

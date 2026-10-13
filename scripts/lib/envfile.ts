@@ -29,7 +29,13 @@ function quote(value: string): string {
  * Updates keys in place (keeping comments and order) and appends missing keys.
  * Creates the file (optionally from a template) when it does not exist.
  */
-export function upsertEnvFile(file: string, updates: Record<string, string>, template?: string): void {
+export function upsertEnvFile(
+  file: string,
+  updates: Record<string, string>,
+  template?: string,
+  opts: { quote?: boolean; remove?: string[] } = {},
+): void {
+  const fmt = (v: string) => (opts.quote === false ? v : quote(v));
   mkdirSync(path.dirname(file), { recursive: true });
   const base = existsSync(file) ? readFileSync(file, 'utf8') : template && existsSync(template) ? readFileSync(template, 'utf8') : '';
   const lines = base.split(/\r?\n/);
@@ -40,10 +46,14 @@ export function upsertEnvFile(file: string, updates: Record<string, string>, tem
     const key = m[1]!;
     const value = pending.get(key)!;
     pending.delete(key);
-    return `${key}=${quote(value)}`;
+    return `${key}=${fmt(value)}`;
   });
+  const removed = new Set(opts.remove ?? []);
+  const kept = next.filter((line) => !removed.has(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/.exec(line)?.[1] ?? ''));
+  next.length = 0;
+  next.push(...kept);
   while (next.length > 0 && next[next.length - 1] === '') next.pop();
-  for (const [key, value] of pending) next.push(`${key}=${quote(value)}`);
+  for (const [key, value] of pending) next.push(`${key}=${fmt(value)}`);
   writeFileSync(file, next.join('\n') + '\n', { mode: 0o600 });
 }
 

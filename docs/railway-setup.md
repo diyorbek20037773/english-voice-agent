@@ -30,7 +30,6 @@ nusxalab qoʻying → **Update Variables**.
 |---|---|---|
 | `OPENAI_API_KEY` | `sk-…` (maxfiy) | Faqat backendda. Brauzerga hech qachon bormaydi |
 | `APP_ACCESS_TOKEN` | 30 belgili token (maxfiy) | Telefonni "unlock" qilish uchun |
-| `ALLOWED_ORIGIN` | `https://${{RAILWAY_PUBLIC_DOMAIN}}` | Railway oʻzi domen bilan almashtiradi |
 | `NODE_ENV` | `production` | |
 | `HOST` | `::` | IPv4+IPv6 (Railway talabi) |
 | `PORT` | `3000` | Domen shu portga yoʻnaltiriladi |
@@ -40,7 +39,6 @@ nusxalab qoʻying → **Update Variables**.
 | `OPENAI_ANSWER_MODEL_DETAILED` | boʻsh | `gpt-6.1-sol` qoʻysangiz sifatliroq, ~20× qimmat |
 | `OPENAI_QUICK_REASONING` | `none` | |
 | `OPENAI_DETAILED_REASONING` | `low` | |
-| `OPENAI_REALTIME_MODEL` | boʻsh | Transkripsiya sessiyasida ishlatilmaydi |
 | `ANSWER_DAILY_LIMIT` | `200` | Kunlik javob chegarasi (byudjet himoyasi) |
 | `CANDIDATE_PROFILE` (ixtiyoriy) | Oʻzingiz haqingizdagi faktlar (inglizcha) | Faqat shaxsiy savollarda ishlatiladi |
 
@@ -66,8 +64,24 @@ yoʻqligi uchun regionni keyin oʻzgartirish oson va toʻxtovsiz. Avval oʻlchan
 ## 4. Domen
 
 Settings → **Networking** → **Generate Domain** → port soʻralsa `3000`.
-Manzil: `https://<nom>.up.railway.app`. `ALLOWED_ORIGIN` avtomatik shu manzilni oladi
+Manzil: `https://<nom>.up.railway.app`. Server bu manzilni Railway bergan `RAILWAY_PUBLIC_DOMAIN`
+dan **oʻzi oladi** — `ALLOWED_ORIGIN` qoʻyish shart emas. Domensiz ilova ishga tushmaydi
 (`${{RAILWAY_PUBLIC_DOMAIN}}` orqali). Oʻz domeningiz shart emas.
+
+## Agar "Healthcheck failed" chiqsa
+
+**Build Logs** emas, **Deploy Logs** ni oching — u yerda sabab yozilgan boʻladi, masalan:
+
+```
+Invalid or missing environment variables:
+  - ALLOWED_ORIGIN: Invalid input: expected string, received undefined
+Hints:
+  - Found "ALLOWED_ORGN" — did you mean "ALLOWED_ORIGIN"? Rename it.
+  - ... On Railway: Settings → Networking → Generate Domain, then redeploy.
+```
+
+Har bir `Hints` qatori nima qilish kerakligini aytadi. Eng koʻp uchraydigan sabablar: domen
+yaratilmagan; `OPENAI_API_KEY` / `APP_ACCESS_TOKEN` yoʻq yoki nomi xato yozilgan.
 
 ## 5. Tekshirish
 

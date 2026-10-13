@@ -73,19 +73,24 @@ upsertEnvFile(
 
 // ---------- production (Railway) ----------
 const web = readEnvFile('railway-variables/web.env');
-upsertEnvFile('railway-variables/web.env', {
-  NODE_ENV: 'production',
-  HOST: '::',
-  PORT: '3000',
-  TRUST_PROXY_HOPS: '1',
-  ALLOWED_ORIGIN: 'https://${{RAILWAY_PUBLIC_DOMAIN}}',
-  APP_ACCESS_TOKEN: keepOr(web, 'APP_ACCESS_TOKEN', accessToken, 'railway'),
-  OPENAI_API_KEY: keepOr(web, 'OPENAI_API_KEY', () => openAiKey, 'railway'),
-  ...Object.fromEntries(Object.entries(models).map(([k, v]) => [k, web[k] || v])),
-  OPENAI_ANSWER_MODEL_DETAILED: web.OPENAI_ANSWER_MODEL_DETAILED || '',
-  OPENAI_REALTIME_MODEL: web.OPENAI_REALTIME_MODEL || '',
-  ANSWER_DAILY_LIMIT: web.ANSWER_DAILY_LIMIT || '200',
-});
+// Railway's Raw Editor: plain KEY=value lines, no quotes. ALLOWED_ORIGIN is not needed on Railway:
+// the server defaults it to https://$RAILWAY_PUBLIC_DOMAIN, which Railway provides automatically.
+upsertEnvFile(
+  'railway-variables/web.env',
+  {
+    NODE_ENV: 'production',
+    HOST: '::',
+    PORT: '3000',
+    TRUST_PROXY_HOPS: '1',
+    APP_ACCESS_TOKEN: keepOr(web, 'APP_ACCESS_TOKEN', accessToken, 'railway'),
+    OPENAI_API_KEY: keepOr(web, 'OPENAI_API_KEY', () => openAiKey, 'railway'),
+    ...Object.fromEntries(Object.entries(models).map(([k, v]) => [k, web[k] || v])),
+    ...(web.OPENAI_ANSWER_MODEL_DETAILED ? { OPENAI_ANSWER_MODEL_DETAILED: web.OPENAI_ANSWER_MODEL_DETAILED } : {}),
+    ANSWER_DAILY_LIMIT: web.ANSWER_DAILY_LIMIT || '200',
+  },
+  undefined,
+  { quote: false, remove: ['ALLOWED_ORIGIN', 'OPENAI_REALTIME_MODEL', ...(web.OPENAI_ANSWER_MODEL_DETAILED ? [] : ['OPENAI_ANSWER_MODEL_DETAILED'])] },
+);
 
 console.log('Env files ready (secret values are only inside these gitignored files):');
 console.log(status.join('\n'));

@@ -65,12 +65,65 @@ export type Config = Omit<z.infer<typeof schema>, 'OPENAI_ANSWER_MODEL_DETAILED'
   modes: { quick: ModeProfile; detailed: ModeProfile };
 };
 
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+const KNOWN_KEYS = Object.keys(schema.shape);
+
+function editDistance(a: string, b: string): number {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array<number>(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) dp[0]![j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i]![j] = Math.min(dp[i - 1]![j]! + 1, dp[i]![j - 1]! + 1, dp[i - 1]![j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+  }
+  return dp[a.length]![b.length]!;
+}
+
+/**
+ * Normalizes values pasted into dashboards/.env files: trims whitespace and CR, drops a BOM and one
+ * layer of matching surrounding quotes, and treats empty values as unset so defaults apply.
+ */
+export function normalizeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, raw] of Object.entries(env)) {
+    if (raw === undefined) continue;
+    let v = raw.replace(/^﻿/, '').trim();
+    if (v.length >= 2 && (v[0] === "'" || v[0] === '"') && v[v.length - 1] === v[0]) v = v.slice(1, -1).trim();
+    if (v !== '') out[key.trim()] = v;
+  }
+  // ALLOWED_ORIGIN defaults to the Railway public domain (Railway provides RAILWAY_PUBLIC_DOMAIN to every
+  // deployment that has a generated domain). An unresolved reference ("https://" or "${{…}}") counts as unset.
+  const origin = out.ALLOWED_ORIGIN;
+  if (!origin || /^https?:\/\/?$/.test(origin) || origin.includes('${{')) {
+    delete out.ALLOWED_ORIGIN;
+    if (out.RAILWAY_PUBLIC_DOMAIN) out.ALLOWED_ORIGIN = `https://${out.RAILWAY_PUBLIC_DOMAIN}`;
+  }
+  return out;
+}
+
+/** Variables that look like misspellings of known ones (names only, never values). */
+export function misspelledKeys(env: Record<string, unknown>): { found: string; meant: string }[] {
+  const out: { found: string; meant: string }[] = [];
+  for (const key of Object.keys(env)) {
+    if (KNOWN_KEYS.includes(key) || key.startsWith('RAILWAY_') || key.length < 6) continue;
+    const meant = KNOWN_KEYS.find((k) => editDistance(k, key) <= 2);
+    if (meant) out.push({ found: key, meant });
+  }
+  return out;
+}
+
+export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): Config {
+  const env = normalizeEnv(rawEnv);
   const parsed = schema.safeParse(env);
   if (!parsed.success) {
     // Print only variable names and the problem, never values.
     const problems = parsed.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`).join('\n');
-    throw new Error(`Invalid or missing environment variables:\n${problems}`);
+    const hints = misspelledKeys(env).map((m) => `  - Found "${m.found}" — did you mean "${m.meant}"? Rename it.`);
+    if (parsed.error.issues.some((i) => i.path[0] === 'ALLOWED_ORIGIN')) {
+      hints.push(
+        '  - ALLOWED_ORIGIN is unset and RAILWAY_PUBLIC_DOMAIN is empty. On Railway: Settings → Networking → Generate Domain, then redeploy.',
+      );
+    }
+    throw new Error(`Invalid or missing environment variables:\n${problems}${hints.length ? `\nHints:\n${hints.join('\n')}` : ''}`);
   }
   const { OPENAI_ANSWER_MODEL_DETAILED, ...c } = parsed.data;
   const origin = new URL(c.ALLOWED_ORIGIN);

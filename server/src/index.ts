@@ -1,9 +1,12 @@
-import { loadConfig } from './config.ts';
+import { loadConfig, misspelledKeys } from './config.ts';
 import { buildApp } from './app.ts';
 
 async function main(): Promise<void> {
   const config = loadConfig();
   const { app } = await buildApp({ config });
+  for (const m of misspelledKeys(process.env)) {
+    app.log.warn(`Environment variable "${m.found}" is ignored — did you mean "${m.meant}"?`);
+  }
 
   // "::" accepts IPv6 and IPv4 (dual-stack), which Railway's networking requires.
   await app.listen({ host: config.HOST, port: config.PORT });

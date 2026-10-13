@@ -3,7 +3,7 @@ import { parseBlocks, parseInline } from '../web/src/lib/markdown.ts';
 import { buildResponsesRequest, hasUnclosedFence, isPersonalQuestion } from '../server/src/answer/context.ts';
 import { buildTranscriptionSessionBody } from '../server/src/openai/client.ts';
 import { classifyOpenAiError, scrub } from '../server/src/answer/errors.ts';
-import { loadConfig } from '../server/src/config.ts';
+import { loadConfig, misspelledKeys } from '../server/src/config.ts';
 import { startOfDayIso } from '../server/src/lib/time.ts';
 
 const baseEnv = {
@@ -118,5 +118,44 @@ describe('time', () => {
   it('computes local midnight in Asia/Tashkent (UTC+5)', () => {
     expect(startOfDayIso('Asia/Tashkent', new Date('2026-10-13T03:00:00Z'))).toBe('2026-10-12T19:00:00.000Z');
     expect(startOfDayIso('Asia/Tashkent', new Date('2026-10-13T20:00:00Z'))).toBe('2026-10-13T19:00:00.000Z');
+  });
+});
+
+describe('config: tolerant Railway/dashboard values', () => {
+  const env = { OPENAI_API_KEY: 'sk-test-0123456789abcdefghijklmnop', APP_ACCESS_TOKEN: 'abcde-fghjk-mnpqr-stuvw' };
+
+  it('defaults ALLOWED_ORIGIN to the Railway public domain (also when misspelled or unresolved)', () => {
+    const domain = { RAILWAY_PUBLIC_DOMAIN: 'web-production-1234.up.railway.app' };
+    const expected = 'https://web-production-1234.up.railway.app';
+    expect(loadConfig({ ...env, ...domain } as NodeJS.ProcessEnv).ALLOWED_ORIGIN).toBe(expected);
+    expect(loadConfig({ ...env, ...domain, ALLOWED_ORGN: "'https://x'" } as NodeJS.ProcessEnv).ALLOWED_ORIGIN).toBe(expected);
+    expect(loadConfig({ ...env, ...domain, ALLOWED_ORIGIN: 'https://' } as NodeJS.ProcessEnv).ALLOWED_ORIGIN).toBe(expected);
+    expect(loadConfig({ ...env, ...domain, ALLOWED_ORIGIN: 'https://${{RAILWAY_PUBLIC_DOMAIN}}' } as NodeJS.ProcessEnv).ALLOWED_ORIGIN).toBe(expected);
+  });
+
+  it('strips surrounding quotes, whitespace and CR; empty values fall back to defaults', () => {
+    const c = loadConfig({
+      ...env,
+      OPENAI_API_KEY: ' "sk-test-0123456789abcdefghijklmnop"\r',
+      ALLOWED_ORIGIN: "'https://app.example.com'",
+      HOST: ':: ',
+      OPENAI_ANSWER_MODEL_DETAILED: '',
+      OPENAI_TRANSCRIPTION_MODEL: '',
+    } as NodeJS.ProcessEnv);
+    expect(c.ALLOWED_ORIGIN).toBe('https://app.example.com');
+    expect(c.OPENAI_API_KEY).toBe('sk-test-0123456789abcdefghijklmnop');
+    expect(c.HOST).toBe('::');
+    expect(c.OPENAI_TRANSCRIPTION_MODEL).toBe('gpt-live-transcribe');
+    expect(c.modes.detailed.model).toBe('gpt-6-luna');
+  });
+
+  it('explains a missing origin and points out misspelled variable names', () => {
+    expect(() => loadConfig({ ...env, ALLOWED_ORGN: 'https://x.up.railway.app' } as NodeJS.ProcessEnv)).toThrow(
+      /did you mean "ALLOWED_ORIGIN"[\s\S]*Generate Domain/,
+    );
+    expect(misspelledKeys({ ALLOWED_ORGN: 'x', OPENAI_APIKEY: 'y', PATH: 'z' })).toEqual([
+      { found: 'ALLOWED_ORGN', meant: 'ALLOWED_ORIGIN' },
+      { found: 'OPENAI_APIKEY', meant: 'OPENAI_API_KEY' },
+    ]);
   });
 });

@@ -72,3 +72,15 @@ text (~0.9 s) + Auto-mode silence threshold (0.8 s) — **estimated, not yet mea
 ## Owner device tests
 
 (Fill in from docs/manual-iphone-test.md.)
+
+## Railway "Healthcheck failed" (2026-10-13)
+
+Owner's build log: build OK, then `/healthz` "service unavailable" for 5 minutes → the process never
+started listening. Reproduced locally (Docker, same image): with the variable misspelled as
+`ALLOWED_ORGN`, a single-quoted value, or no generated domain, config validation exited with code 1
+before listening. Fix: values are normalized (quotes/whitespace/CR stripped, empty = unset),
+`ALLOWED_ORIGIN` defaults to `https://$RAILWAY_PUBLIC_DOMAIN` (Railway-provided, per
+docs.railway.com/reference/variables), misspelled names are reported with a "did you mean" hint, and
+the Railway env generator no longer quotes values or emits `ALLOWED_ORIGIN`. Verified in Docker: the
+owner's exact variable set + a domain now starts and answers `/healthz` over IPv4 and IPv6; without a
+domain it exits with an actionable hint. Not yet confirmed on Railway itself.

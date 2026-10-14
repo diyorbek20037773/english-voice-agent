@@ -37,7 +37,7 @@ export function registerSecurity(app: FastifyInstance, config: Config): void {
           "default-src 'self'",
           "script-src 'self'",
           "style-src 'self'",
-          "img-src 'self' data:",
+          "img-src 'self' data: blob:",
           "font-src 'self'",
           // WebRTC SDP exchange goes straight to OpenAI with the ephemeral token.
           "connect-src 'self' https://api.openai.com",

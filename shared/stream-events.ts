@@ -2,7 +2,10 @@
 // Responses API stream into exactly these three event types.
 
 export type AnswerMode = 'quick' | 'detailed';
-export type AnswerKind = 'question' | 'continue';
+export type AnswerKind = 'question' | 'continue' | 'image';
+
+/** Question text sent with a photo task when the user typed no note. */
+export const DEFAULT_IMAGE_NOTE = 'Solve the task in the photo.';
 
 export type AnswerErrorCode =
   | 'insufficient_credit'

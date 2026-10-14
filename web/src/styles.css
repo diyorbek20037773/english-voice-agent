@@ -209,6 +209,16 @@ h3 {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.bubble-img {
+  display: block;
+  max-width: 220px;
+  max-height: 220px;
+  margin: 2px 0 8px auto;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  object-fit: contain;
+  background: var(--bg);
+}
 .bubble-tag {
   color: var(--muted);
 }
@@ -540,6 +550,21 @@ h3 {
   background: transparent;
   line-height: 1.5;
   max-height: 9em;
+}
+.attach {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-left: -10px;
+  border-radius: 50%;
+  font-size: 1.15rem;
+  cursor: pointer;
+  filter: grayscale(1);
+}
+.attach:hover {
+  background: var(--soft);
 }
 .send {
   flex: none;

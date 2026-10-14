@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Markdown, copyText } from './Markdown.tsx';
-import type { AnswerMode } from '../../../shared/stream-events.ts';
+import { DEFAULT_IMAGE_NOTE, type AnswerMode } from '../../../shared/stream-events.ts';
 
 export interface AnswerItem {
   questionId: string;
   question: string;
   mode: AnswerMode;
-  kind: 'question' | 'continue';
+  kind: 'question' | 'continue' | 'image';
+  /** Local thumbnail (blob: URL) and the uploaded data for retries; photo tasks only. */
+  imageUrl?: string;
+  imageData?: string;
   status: 'waiting' | 'streaming' | 'done' | 'error' | 'superseded';
   text: string;
   truncated: boolean;
@@ -24,8 +27,9 @@ export function UserMessage({ item }: { item: AnswerItem }) {
   return (
     <div className="msg-user">
       <div className="bubble">
+        {item.imageUrl && <img className="bubble-img" src={item.imageUrl} alt="Task photo" />}
         {item.kind === 'continue' && <span className="bubble-tag">Continue · </span>}
-        {item.question}
+        {item.kind === 'image' ? <span className={item.question === DEFAULT_IMAGE_NOTE ? 'bubble-tag' : ''}>{item.question}</span> : item.question}
       </div>
     </div>
   );

@@ -44,7 +44,7 @@ async function startApp(env: Record<string, string> = {}, webDir: string | null 
 beforeAll(async () => {
   mock = createMockOpenAi() as Mock;
   mockUrl = await mock.listen(0);
-  const started = await startApp();
+  const started = await startApp({ ANSWER_RATE_PER_MINUTE: '600' });
   base = started.url;
   origin = 'http://localhost:5173';
   close = () => started.app.close();
@@ -354,5 +354,45 @@ describe('open access (OPEN_ACCESS=true, no unlock screen)', () => {
     expect(second.status).toBe(429);
     expect(await second.json()).toMatchObject({ error: { code: 'daily_limit' } });
     await app.close();
+  });
+});
+
+describe('photo tasks (kind "image")', () => {
+  const PNG_1PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+  it('sends the photo to OpenAI as input_image and streams a coding solution', async () => {
+    const cookie = await login();
+    const sid = await newSession(cookie);
+    const r = await answer(cookie, { practiceSessionId: sid, questionId: 'q_img_000001', question: 'Solve the task in the photo.', kind: 'image', image: PNG_1PX });
+    expect(r.events.at(-1)).toMatchObject({ type: 'answer.done' });
+    expect(text(r.events)).toContain('def two_sum');
+    const sent = mock.requests.filter((x) => x.path === '/v1/responses').at(-1)!.body;
+    const parts = sent.input.at(-1).content as { type: string; image_url?: string; detail?: string; text?: string }[];
+    expect(parts.map((p) => p.type)).toEqual(['input_text', 'input_image']);
+    expect(parts[1]).toMatchObject({ image_url: PNG_1PX, detail: 'high' });
+    expect(parts[0]!.text).toContain('restate the problem');
+    expect(sent.max_output_tokens).toBe(2400);
+    expect(logs).not.toContain(PNG_1PX.slice(30));
+  });
+
+  it('accepts a phone-sized photo but keeps other routes small', async () => {
+    const cookie = await login();
+    const sid = await newSession(cookie);
+    const big = 'data:image/jpeg;base64,' + Buffer.alloc(900_000, 7).toString('base64');
+    const r = await answer(cookie, { practiceSessionId: sid, questionId: 'q_img_big001', question: 'In Java please', kind: 'image', image: big });
+    expect(r.status).toBe(200);
+    const note = JSON.stringify(mock.requests.filter((x) => x.path === '/v1/responses').at(-1)!.body.input.at(-1).content[0]);
+    expect(note).toContain('In Java please');
+    const res = await fetch(`${base}/api/timings`, { method: 'POST', headers: h(cookie), body: JSON.stringify({ inputMode: 'typed', metrics: {}, pad: 'x'.repeat(40_000) }) });
+    expect(res.status).toBe(413);
+  });
+
+  it('rejects malformed photo requests', async () => {
+    const cookie = await login();
+    const sid = await newSession(cookie);
+    expect((await answer(cookie, { practiceSessionId: sid, questionId: 'q_img_bad001', question: 'x', kind: 'image' })).status).toBe(400);
+    expect((await answer(cookie, { practiceSessionId: sid, questionId: 'q_img_bad002', question: 'x', image: PNG_1PX })).status).toBe(400);
+    expect((await answer(cookie, { practiceSessionId: sid, questionId: 'q_img_bad003', question: 'x', kind: 'image', image: 'data:image/gif;base64,R0lGOD' })).status).toBe(400);
+    expect((await answer(cookie, { practiceSessionId: sid, questionId: 'q_img_bad004', question: 'x', kind: 'image', image: 'https://evil.example/a.png' })).status).toBe(400);
   });
 });

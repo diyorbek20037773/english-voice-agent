@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { api, ApiError } from './api/client.ts';
 import { streamAnswer } from './api/answer-stream.ts';
 import { AssistantMessage, UserMessage, type AnswerItem } from './components/Message.tsx';
@@ -14,7 +14,8 @@ import {
 import type { TurnResult } from './voice/turns.ts';
 import { assessQuestion, containsQuestion, joinTranscript, trimContext } from './voice/question.ts';
 import type { PracticeSessionResponse, RealtimeSessionResponse } from '../../shared/api-types.ts';
-import type { AnswerMode } from '../../shared/stream-events.ts';
+import { DEFAULT_IMAGE_NOTE, type AnswerMode } from '../../shared/stream-events.ts';
+import { prepareImage } from './lib/image.ts';
 
 type Banner = { kind: 'error' | 'info'; text: string } | null;
 
@@ -139,7 +140,14 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
   );
 
   const ask = useCallback(
-    async (opts: { question: string; inputMode: 'voice' | 'typed'; kind?: 'question' | 'continue'; continueOf?: string; turn?: TurnTimings | null }) => {
+    async (opts: {
+      question: string;
+      inputMode: 'voice' | 'typed';
+      kind?: 'question' | 'continue' | 'image';
+      continueOf?: string;
+      turn?: TurnTimings | null;
+      image?: { dataUrl: string; previewUrl?: string };
+    }) => {
       const question = opts.question.trim();
       if (!question) return;
       const mode = answerModeRef.current;
@@ -156,7 +164,18 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
       stickToBottom.current = true;
       setAnswers((list) => [
         ...list,
-        { questionId, question: question.replace(/^Continue: /, ''), mode, kind: opts.kind ?? 'question', status: 'waiting', text: '', truncated: false, replayed: false },
+        {
+          questionId,
+          question: question.replace(/^Continue: /, ''),
+          mode,
+          kind: opts.kind ?? 'question',
+          status: 'waiting',
+          text: '',
+          truncated: false,
+          replayed: false,
+          imageUrl: opts.image?.previewUrl ?? opts.image?.dataUrl,
+          imageData: opts.image?.dataUrl,
+        },
       ]);
 
       const requestAt = performance.now();
@@ -169,7 +188,16 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
           practiceSessionId = await ensureSession();
           try {
             await streamAnswer(
-              { practiceSessionId, questionId, question, mode, kind: opts.kind ?? 'question', continueOf: opts.continueOf, inputMode: opts.inputMode },
+              {
+                practiceSessionId,
+                questionId,
+                question,
+                mode,
+                kind: opts.kind ?? 'question',
+                continueOf: opts.continueOf,
+                inputMode: opts.inputMode,
+                ...(opts.image && { image: opts.image.dataUrl }),
+              },
               abort.signal,
               (ev) => {
                 if (currentRef.current?.questionId !== questionId && ev.type === 'answer.delta') return; // stale
@@ -379,6 +407,25 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
     clearHeld();
     transcriberRef.current?.clearTurn();
   };
+  /** Photo or screenshot of a task → solved right away (a typed note, e.g. "in Java", is sent with it). */
+  const sendImage = async (file: Blob) => {
+    try {
+      setBanner(null);
+      const img = await prepareImage(file);
+      const note = typed.trim();
+      setTyped('');
+      void ask({ question: note || DEFAULT_IMAGE_NOTE, inputMode: 'typed', kind: 'image', image: img });
+    } catch (err) {
+      setBanner({ kind: 'error', text: err instanceof Error ? err.message : 'Could not read the image.' });
+    }
+  };
+  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const file = [...e.clipboardData.files].find((f) => f.type.startsWith('image/'));
+    if (file) {
+      e.preventDefault();
+      void sendImage(file);
+    }
+  };
   const onComposerKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     // Desktop: Enter sends, Shift+Enter adds a line. Touch keyboards: Enter adds a line, use the send button.
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && matchMedia('(pointer: fine)').matches) {
@@ -445,7 +492,13 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
               <AssistantMessage
                 item={a}
                 onContinue={(item) => void ask({ question: `Continue: ${item.question}`, inputMode: 'typed', kind: 'continue', continueOf: item.questionId })}
-                onRetry={(item) => void ask({ question: item.question, inputMode: 'typed' })}
+                onRetry={(item) =>
+                  void ask(
+                    item.kind === 'image' && item.imageData
+                      ? { question: item.question, inputMode: 'typed', kind: 'image', image: { dataUrl: item.imageData, previewUrl: item.imageUrl } }
+                      : { question: item.question, inputMode: 'typed' },
+                  )
+                }
               />
             </Fragment>
           ))
@@ -547,6 +600,19 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
         </div>
 
         <div className="composer">
+          <label className="attach" title="Photo or screenshot of a task" aria-label="Solve a task from a photo">
+            📷
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (file) void sendImage(file);
+              }}
+            />
+          </label>
           <textarea
             aria-label="Message"
             rows={composerRows}
@@ -554,7 +620,8 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             onKeyDown={onComposerKey}
-            placeholder="Type or edit a question…"
+            onPaste={onPaste}
+            placeholder="Type a question, or 📷 a task…"
           />
           <button type="button" className="send" onClick={sendTyped} disabled={!typed.trim()} aria-label="Send">
             ↑

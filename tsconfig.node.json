@@ -35,6 +35,7 @@
     "web/src/voice/question.ts",
     "web/src/lib/markdown.ts",
     ".railway",
-    "web/src/voice/transcriber.ts"
+    "web/src/voice/transcriber.ts",
+    "web/src/lib/image.ts"
   ]
 }

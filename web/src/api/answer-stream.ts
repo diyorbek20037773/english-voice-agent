@@ -10,6 +10,7 @@ export interface AnswerRequestBody {
   kind: AnswerKind;
   continueOf?: string;
   inputMode: 'voice' | 'typed';
+  image?: string;
 }
 
 /**

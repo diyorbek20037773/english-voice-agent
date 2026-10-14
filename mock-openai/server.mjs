@@ -131,6 +131,12 @@ export function createMockOpenAi() {
       if (/RATE_TEST/.test(q)) return json(res, 429, { error: { message: 'Rate limit reached for requests', type: 'requests', code: 'rate_limit_exceeded' } });
       if (!body?.stream) return json(res, 400, { error: { message: 'Mock only supports stream: true', type: 'invalid_request_error' } });
 
+      const hasImage = Array.isArray(body?.input) && body.input.some((m) => Array.isArray(m?.content) && m.content.some((c) => c?.type === 'input_image'));
+      if (hasImage) {
+        const solution =
+          'Task: return indices of two numbers that add up to target.\n\n```python\ndef two_sum(nums, target):\n    seen = {}\n    for i, n in enumerate(nums):\n        if target - n in seen:\n            return [seen[target - n], i]\n        seen[n] = i\n```\n\nTime O(n), space O(n).';
+        return streamText(res, model, chunkText(solution, 10), { delayMs: 10 });
+      }
       if (/UNICODE_TEST/.test(q)) return streamText(res, model, ['Привет — naïve café ', '🚀 oʻzbekcha ', '日本語 ✓ done.']);
       if (/SLOW_TEST/.test(q)) return streamText(res, model, chunkText('This answer streams slowly so supersede and cancel can be tested. '.repeat(3), 30), { delayMs: 120 });
       if (/DROP_TEST/.test(q)) return streamText(res, model, ['Partial ', 'answer ', 'then ', 'drop.'], { dropAfter: 2 });

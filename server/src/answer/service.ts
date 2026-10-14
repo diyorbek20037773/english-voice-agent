@@ -21,6 +21,7 @@ export interface AnswerRequest {
   kind: AnswerKind;
   continueOf?: string | undefined;
   inputMode: 'voice' | 'typed';
+  image?: string | undefined;
 }
 
 export type PreflightResult =
@@ -126,6 +127,7 @@ export class AnswerService {
       question,
       history: r.kind === 'continue' ? [] : session.turns.slice(-3),
       previousAnswer,
+      image: r.kind === 'image' ? r.image : undefined,
       profile: config.CANDIDATE_PROFILE,
       targetRole: config.TARGET_ROLE,
       model: profile.model,

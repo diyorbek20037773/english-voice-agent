@@ -184,3 +184,12 @@ describe('config: access mode', () => {
     expect(loadConfig({ ...base, APP_ACCESS_TOKEN: 'abcde-fghjk-mnpqr-stuvw' } as NodeJS.ProcessEnv).OPEN_ACCESS).toBe(false);
   });
 });
+
+describe('photo downscaling', () => {
+  it('keeps aspect ratio and caps the longest side at 1600 px', async () => {
+    const { scaledSize } = await import('../web/src/lib/image.ts');
+    expect(scaledSize(4032, 3024)).toEqual({ width: 1600, height: 1200 });
+    expect(scaledSize(1170, 2532)).toEqual({ width: 739, height: 1600 });
+    expect(scaledSize(800, 600)).toEqual({ width: 800, height: 600 });
+  });
+});

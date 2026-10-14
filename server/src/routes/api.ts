@@ -45,8 +45,14 @@ const AnswerBody = z.strictObject({
   questionId: z.string().regex(ID_RE),
   question: z.string().trim().min(1).max(2000),
   mode: z.enum(['quick', 'detailed']),
-  kind: z.enum(['question', 'continue']).default('question'),
+  kind: z.enum(['question', 'continue', 'image']).default('question'),
   continueOf: z.string().regex(ID_RE).optional(),
+  /** Photo/screenshot of a task (kind "image"): data URL, JPEG/PNG/WEBP, up to ~6 MB. Never stored or logged. */
+  image: z
+    .string()
+    .max(8_000_000)
+    .regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/)
+    .optional(),
   inputMode: z.enum(['voice', 'typed']).default('typed'),
 });
 
@@ -169,9 +175,12 @@ export async function registerApiRoutes(api: FastifyInstance, d: Deps): Promise<
   // ---------- answer (streams OpenAI Responses API) ----------
   api.post(
     '/answer',
-    { ...authed, config: { rateLimit: { max: config.ANSWER_RATE_PER_MINUTE, timeWindow: '1 minute' } } },
+    { ...authed, bodyLimit: 8 * 1024 * 1024, config: { rateLimit: { max: config.ANSWER_RATE_PER_MINUTE, timeWindow: '1 minute' } } },
     async (req, reply) => {
       const body = AnswerBody.parse(req.body);
+      if ((body.kind === 'image') !== Boolean(body.image)) {
+        return reply.code(400).send(apiError('bad_request', 'A photo task needs kind "image" and an image.'));
+      }
       const pre = answers.preflight(body);
       if (!pre.ok) return reply.code(pre.status).send(apiError(pre.code, pre.message));
       reply.hijack();

@@ -33,7 +33,9 @@ const schema = z.object({
   OPENAI_QUICK_REASONING: effort.default('none'),
   OPENAI_DETAILED_REASONING: effort.default('low'),
   TRANSCRIPTION_KEYWORDS: csv,
-  CANDIDATE_PROFILE: z.string().max(4000).default(''),
+  CANDIDATE_PROFILE: z.string().max(8000).default(''),
+  /** Role the answers are framed for, e.g. "AI Solutions Engineer". Empty = generic. */
+  TARGET_ROLE: z.string().max(80).default(''),
 
   // Access. OPEN_ACCESS=true: no unlock screen — anyone with the URL can use the app (budget limits still apply).
   OPEN_ACCESS: z.enum(['true', 'false', '1', '0', 'yes', 'no']).default('false').transform((v) => ['true', '1', 'yes'].includes(v)),

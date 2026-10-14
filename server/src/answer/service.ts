@@ -127,6 +127,7 @@ export class AnswerService {
       history: r.kind === 'continue' ? [] : session.turns.slice(-3),
       previousAnswer,
       profile: config.CANDIDATE_PROFILE,
+      targetRole: config.TARGET_ROLE,
       model: profile.model,
       reasoningEffort: profile.reasoningEffort,
     });

@@ -108,6 +108,7 @@ export async function registerApiRoutes(api: FastifyInstance, d: Deps): Promise<
       modes: config.modes,
       transcriptionModel: config.OPENAI_TRANSCRIPTION_MODEL,
       profileConfigured: config.CANDIDATE_PROFILE.trim().length > 0,
+      targetRole: config.TARGET_ROLE,
       dailyLimit: config.ANSWER_DAILY_LIMIT,
       answersToday: state.answersToday(),
       openAccess: config.OPEN_ACCESS,

@@ -25,3 +25,8 @@ claude_code_railway_n8n_prompt*.md
 .idea/
 .DS_Store
 Thumbs.db
+
+# Personal documents (CV etc.) - never commit
+docs/*.pdf
+*CV*.pdf
+*cv*.pdf

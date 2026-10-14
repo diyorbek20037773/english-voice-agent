@@ -84,6 +84,7 @@ export function SettingsPanel({
               Transcription: <strong>{cfg.transcriptionModel}</strong>
             </li>
             <li>Candidate profile: {cfg.profileConfigured ? 'configured' : 'not set (CANDIDATE_PROFILE)'}</li>
+            <li>Target role: {cfg.targetRole || 'not set (TARGET_ROLE)'}</li>
             <li>
               Answers today: {cfg.answersToday} / {cfg.dailyLimit}
             </li>

@@ -22,6 +22,7 @@ export interface AppConfigResponse {
   modes: Record<AnswerMode, { model: string; reasoningEffort: string | null }>;
   transcriptionModel: string;
   profileConfigured: boolean;
+  targetRole: string;
   dailyLimit: number;
   answersToday: number;
   openAccess: boolean;

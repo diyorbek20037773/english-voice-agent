@@ -82,4 +82,6 @@ Answer:  browser ─POST /api/answer─▶ backend ─POST /v1/responses (stream
 - Answers are grounded in CANDIDATE_PROFILE (from the owner's CV; source text in gitignored
   secrets/candidate-profile.txt, CV PDF gitignored) and framed by TARGET_ROLE=AI Solutions Engineer; the
   profile sits in the static instructions (prompt-cacheable). Update via railway variable set --stdin.
+- Photo tasks: composer 📷 / paste → client downscales to 1600 px JPEG → /api/answer kind "image" (data URL,
+  8 MB route limit, never stored/logged) → gpt-6-luna vision with IMAGE_TASK_PROMPT (server/src/answer/context.ts).
 - Remaining (owner): iPhone Safari + laptop-audio manual tests (docs/manual-iphone-test.md).

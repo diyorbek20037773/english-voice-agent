@@ -120,3 +120,11 @@ done. An EU West comparison remains optional.
 MediaStream / AudioContext: a server-closed session reconnects automatically with a new token and the
 microphone track is never stopped; at 55 minutes it commits pending audio, keeps the final text and
 rotates; Stop releases the microphone. Not yet exercised against OpenAI's real 60-minute cutoff.
+
+## Photo tasks (REAL, production, 2026-10-14)
+
+A rendered screenshot of "Longest Substring Without Repeating Characters" sent to /api/answer
+(kind image, gpt-6-luna vision, detail high): correct restatement, sliding-window solution in Python,
+edge cases, O(n) time; first text 2.7 s, full answer 5.0 s. MOCKED tests cover the request shape
+(input_text + input_image), the 8 MB route limit (other routes stay at 32 KB) and rejection of
+non-image or URL inputs. Phone camera capture itself is not yet tested on a device.

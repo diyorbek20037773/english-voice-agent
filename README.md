@@ -92,6 +92,7 @@ pnpm smoke:real --url https://SIZNING-MANZIL.up.railway.app --env railway-variab
 | **Clear** | Transkript va javoblarni tozalaydi |
 | (avtomatik) | Savol eshitilsa (~0.8 s jimlikdan keyin) javob oʻzi chiqadi. Oddiy gaplar keyingi savol uchun kontekst boʻlib saqlanadi; "Okay", "Great" kabilar eʼtiborsiz qoldiriladi |
 | **Quick / Detailed** | Qisqa yoki batafsil javob |
+| **📷** (yozish maydonida) | Masala rasmini oling (telefonda kamera) yoki skrinshot tanlang; kompyuterda **Ctrl+V** bilan qoʻying — darhol yechiladi: masala qayta aytiladi, yondashuv, kod (standart Python; boshqa til uchun avval "in Java" deb yozing), edge case'lar, murakkablik |
 | **Edit** | Transkriptni pastdagi maydonga oladi: tuzating va **↑** (yoki Enter) bosing |
 
 Javoblar ChatGPT'dagidek soʻzma-soʻz oqim (stream) boʻlib chiqadi. Kesilgan javob boʻlsa **Continue**,

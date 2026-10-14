@@ -326,3 +326,33 @@ describe('limits and static hosting', () => {
     expect(await res.json()).toEqual({ checked: true, available: { 'gpt-6-luna': true, 'gpt-live-transcribe': true } });
   });
 });
+
+describe('open access (OPEN_ACCESS=true, no unlock screen)', () => {
+  it('lets the app in without any token and still works end to end', async () => {
+    const { url, app } = await startApp({ OPEN_ACCESS: 'true', APP_ACCESS_TOKEN: '' });
+    const me = await (await fetch(`${url}/api/me`)).json();
+    expect(me).toEqual({ authenticated: true, openAccess: true });
+    const s = await fetch(`${url}/api/practice-sessions`, { method: 'POST', headers: h(), body: '{}' });
+    expect(s.status).toBe(201);
+    const sid = ((await s.json()) as { id: string }).id;
+    const r = await answer('', { practiceSessionId: sid, questionId: 'q_open_00001', question: 'What is a semaphore?' }, url);
+    expect(r.events.at(-1)).toMatchObject({ type: 'answer.done' });
+    const rt = await fetch(`${url}/api/realtime/session`, { method: 'POST', headers: h(), body: '{}' });
+    expect(rt.status).toBe(200);
+    // Cross-site requests are still refused.
+    const evil = await fetch(`${url}/api/practice-sessions`, { method: 'POST', headers: { ...h(), Origin: 'https://evil.example' }, body: '{}' });
+    expect(evil.status).toBe(403);
+    expect((await fetch(`${url}/robots.txt`)).status).toBe(404); // no web dir in this test; header still set:
+    expect((await fetch(`${url}/healthz`)).headers.get('x-robots-tag')).toBe('noindex, nofollow');
+    await app.close();
+  });
+
+  it('caps voice sessions per day for the budget', async () => {
+    const { url, app } = await startApp({ OPEN_ACCESS: 'true', VOICE_SESSIONS_PER_DAY: '1' });
+    expect((await fetch(`${url}/api/realtime/session`, { method: 'POST', headers: h(), body: '{}' })).status).toBe(200);
+    const second = await fetch(`${url}/api/realtime/session`, { method: 'POST', headers: h(), body: '{}' });
+    expect(second.status).toBe(429);
+    expect(await second.json()).toMatchObject({ error: { code: 'daily_limit' } });
+    await app.close();
+  });
+});

@@ -48,6 +48,7 @@ export const STATE_LIMITS = {
 export class MemoryState {
   private readonly sessions = new Map<string, PracticeSession>();
   private daily = { day: '', count: 0 };
+  private voiceDaily = { day: '', count: 0 };
   readonly timings: TimingSample[] = [];
   readonly startedAt = new Date().toISOString();
 
@@ -91,6 +92,18 @@ export class MemoryState {
   countAnswer(now = new Date()): void {
     this.answersToday(now);
     this.daily.count++;
+  }
+
+  /** Voice sessions started today (local time zone). */
+  voiceSessionsToday(now = new Date()): number {
+    const day = startOfDayIso(this.timeZone, now);
+    if (this.voiceDaily.day !== day) this.voiceDaily = { day, count: 0 };
+    return this.voiceDaily.count;
+  }
+
+  countVoiceSession(now = new Date()): void {
+    this.voiceSessionsToday(now);
+    this.voiceDaily.count++;
   }
 
   addTiming(t: TimingSample): void {

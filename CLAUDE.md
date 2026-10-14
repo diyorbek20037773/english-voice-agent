@@ -23,7 +23,9 @@ Answer:  browser ─POST /api/answer─▶ backend ─POST /v1/responses (stream
 - In-memory state (server/src/state.ts): practice sessions, follow-up turns (last 3 sent), dedup by
   session+questionId, one active answer per session (newer supersedes), daily counter, timing samples.
   Single replica only. Lost on restart (frontend recreates the session automatically).
-- Access: `APP_ACCESS_TOKEN` unlocks a device → stateless HMAC-signed HttpOnly/Secure/SameSite=Strict
+- Access: production runs with `OPEN_ACCESS=true` (owner request 2026-10-14: no unlock screen; budget
+  guards: ANSWER_DAILY_LIMIT, VOICE_SESSIONS_PER_DAY, per-IP rate limits, noindex). Without it,
+  `APP_ACCESS_TOKEN` unlocks a device → stateless HMAC-signed HttpOnly/Secure/SameSite=Strict
   cookie (key derived from the token; rotating the token logs out all devices). Origin check on all
   state-changing /api requests; text/plain bodies rejected; strict CSP (connect-src self + api.openai.com).
 

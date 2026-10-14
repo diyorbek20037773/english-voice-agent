@@ -51,8 +51,8 @@ pnpm dev
 
 Brauzerda oching: **http://localhost:5173**
 
-- "Access token" maydoniga `.env` faylidagi `APP_ACCESS_TOKEN` qiymatini kiriting
-  (`.env` ni VS Code'da ochib koʻring).
+- Agar kirish oynasi chiqsa, `.env` dagi `APP_ACCESS_TOKEN` ni kiriting. Uni umuman koʻrmaslik uchun
+  `.env` ga `OPEN_ACCESS=true` qoʻshing.
 - Pastdagi maydonga savol yozib **Enter** (yoki **↑**) bosing — javob oqim boʻlib chiqadi.
 - **Start** → ruxsat bering → inglizcha gapiring → **Answer**.
 
@@ -73,7 +73,7 @@ Qadam-baqadam yoʻriqnoma: **[docs/railway-setup.md](docs/railway-setup.md)**. Q
 3. **Settings** → Healthcheck Path: `/healthz`; Serverless: **oʻchiq**; Replicas: **1**;
    Region: **EU West (Amsterdam)**.
 4. **Settings → Networking → Generate Domain** → manzil chiqadi: `https://…up.railway.app`.
-5. Telefonda shu manzilni oching → `railway-variables/web.env` dagi `APP_ACCESS_TOKEN` ni kiriting.
+5. Telefonda shu manzilni oching — ilova darhol ochiladi (`OPEN_ACCESS=true`, token soʻralmaydi).
 
 Tekshirish (kompyuterdan, ~$0.01 dan kam):
 
@@ -131,7 +131,12 @@ Claude Max — bu faqat dasturlash uchun; ilovaning OpenAI xarajatini qoplamaydi
   Sozlash tugagach, `docs/apikey.md` faylini oʻchirib qoʻyish tavsiya etiladi (kalit `.env` da bor).
 - Kalit oshkor boʻlib qolsa: OpenAI → API keys → eski kalitni **Revoke** → yangi kalit →
   `.env` va Railway Variables'ni yangilang.
-- Barcha qurilmalardan chiqarish: `APP_ACCESS_TOKEN` ni yangisiga almashtiring.
+- **Ochiq kirish (`OPEN_ACCESS=true`):** token soʻralmaydi, lekin manzilni bilgan har kim ilovadan
+  foydalana oladi va bu sizning OpenAI kreditingizdan sarflanadi. Himoya: kunlik javob limiti
+  (`ANSWER_DAILY_LIMIT`), kunlik ovozli sessiya limiti (`VOICE_SESSIONS_PER_DAY`, standart 60),
+  IP boʻyicha cheklovlar, qidiruv tizimlariga indekslash taqiqi. Eng ishonchli himoya —
+  OpenAI dashboard'ida **Limits → budget** (oylik chegara) qoʻyish.
+- Token himoyasini qaytarish: Railway'dan `OPEN_ACCESS` ni oʻchiring (`APP_ACCESS_TOKEN` saqlangan).
 
 ## 7. Muammolar
 

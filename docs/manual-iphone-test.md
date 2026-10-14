@@ -4,7 +4,7 @@ Bu testni **haqiqiy iPhone** bilan siz bajarasiz. Kompyuterdagi "telefon oʻlcha
 haqiqiy iPhone mikrofon testi hisoblanmaydi. Android Chrome uchun ham shu roʻyxat ishlaydi.
 
 **Kerak:** Railway'dagi `https://…up.railway.app` manzili, `railway-variables/web.env` dagi
-`APP_ACCESS_TOKEN`, tinch xona. Test ~10 daqiqa, OpenAI xarajati ~$0.20 dan kam.
+tinch xona. Test ~10 daqiqa, OpenAI xarajati ~$0.20 dan kam.
 
 Har bir qatorga ✅ yoki ❌ va izoh yozing.
 
@@ -13,8 +13,8 @@ Har bir qatorga ✅ yoki ❌ va izoh yozing.
 | # | Qadam | Kutilgan natija |
 |---|---|---|
 | 1 | Safari'da manzilni oching | "English Voice Practice" kirish oynasi |
-| 2 | Tokenni kiriting → **Unlock** | Oq-qora suhbat ekrani: "Ready when you are.", holat: **Ready** |
-| 3 | Notoʻgʻri token bilan urinib koʻring (boshqa brauzer oynasida) | "That access token is not correct." |
+| 2 | (kirish oynasi yoʻq) | Darhol oq-qora suhbat ekrani: "Ready when you are.", holat: **Ready** |
+| 3 | Settings (⚙) | "Access: open (no unlock screen)" |
 | 4 | **Start** bosing | Safari mikrofon ruxsatini soʻraydi → **Allow** |
 | 5 | Ruxsatdan keyin | Holat **Connecting…** → **Listening**, qora **Mic on** belgisi, ovoz chizigʻi harakatlanadi |
 

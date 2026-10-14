@@ -80,6 +80,8 @@ upsertEnvFile(
   {
     NODE_ENV: 'production',
     PORT: '3000',
+    // Owner's choice: no unlock screen. Remove this line to require APP_ACCESS_TOKEN again.
+    OPEN_ACCESS: web.OPEN_ACCESS || 'true',
     TRUST_PROXY_HOPS: '1',
     APP_ACCESS_TOKEN: keepOr(web, 'APP_ACCESS_TOKEN', accessToken, 'railway'),
     OPENAI_API_KEY: keepOr(web, 'OPENAI_API_KEY', () => openAiKey, 'railway'),

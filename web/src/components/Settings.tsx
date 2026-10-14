@@ -87,6 +87,10 @@ export function SettingsPanel({
             <li>
               Answers today: {cfg.answersToday} / {cfg.dailyLimit}
             </li>
+            <li>
+              Voice sessions today: {cfg.voiceSessionsToday} / {cfg.voiceSessionsPerDay}
+            </li>
+            <li>Access: {cfg.openAccess ? 'open (no unlock screen)' : 'access token'}</li>
           </ul>
         )}
         <div className="row">
@@ -135,12 +139,16 @@ export function SettingsPanel({
           </>
         )}
 
-        <h3>Device</h3>
-        <div className="row">
-          <button type="button" className="btn small" onClick={onLogout}>
-            Lock this device
-          </button>
-        </div>
+        {cfg && !cfg.openAccess && (
+          <>
+            <h3>Device</h3>
+            <div className="row">
+              <button type="button" className="btn small" onClick={onLogout}>
+                Lock this device
+              </button>
+            </div>
+          </>
+        )}
       </section>
     </div>
   );

@@ -2,6 +2,8 @@ import type { AnswerMode } from './stream-events.ts';
 
 export interface MeResponse {
   authenticated: boolean;
+  /** True when the server runs without an unlock screen (OPEN_ACCESS=true). */
+  openAccess?: boolean;
 }
 
 export interface PracticeSessionResponse {
@@ -22,6 +24,9 @@ export interface AppConfigResponse {
   profileConfigured: boolean;
   dailyLimit: number;
   answersToday: number;
+  openAccess: boolean;
+  voiceSessionsToday: number;
+  voiceSessionsPerDay: number;
 }
 
 export interface ModelCheckResponse {

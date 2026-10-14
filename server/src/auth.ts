@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Config } from './config.ts';
 
@@ -8,13 +8,16 @@ import type { Config } from './config.ts';
  * session cookie. No database: the cookie is a stateless HMAC-signed expiry.
  * The signing key is derived from APP_ACCESS_TOKEN, so rotating the token
  * immediately invalidates every existing session.
+ * With OPEN_ACCESS=true there is no unlock step: every request counts as the owner.
  */
 export class Auth {
   private readonly key: Buffer;
   private failures: number[] = [];
 
   constructor(private readonly config: Config) {
-    this.key = createHmac('sha256', config.APP_ACCESS_TOKEN).update('eva-session-key-v1').digest();
+    this.key = config.APP_ACCESS_TOKEN
+      ? createHmac('sha256', config.APP_ACCESS_TOKEN).update('eva-session-key-v1').digest()
+      : randomBytes(32);
   }
 
   private mac(data: string): Buffer {
@@ -27,9 +30,14 @@ export class Auth {
     return this.failures.length >= 10;
   }
 
+  get open(): boolean {
+    return this.config.OPEN_ACCESS;
+  }
+
   checkToken(given: string): boolean {
+    if (this.open) return true;
     // Compare fixed-length MACs so neither length nor content leaks through timing.
-    const ok = timingSafeEqual(this.mac(`token:${given}`), this.mac(`token:${this.config.APP_ACCESS_TOKEN}`));
+    const ok = timingSafeEqual(this.mac(`token:${given}`), this.mac(`token:${this.config.APP_ACCESS_TOKEN ?? ''}`));
     if (!ok) this.failures.push(Date.now());
     return ok;
   }
@@ -51,6 +59,7 @@ export class Auth {
   }
 
   isAuthenticated(req: FastifyRequest, now = Date.now()): boolean {
+    if (this.open) return true;
     const value = req.cookies[this.config.cookieName];
     if (!value || value.length > 512) return false;
     const [payload, sig] = value.split('.');

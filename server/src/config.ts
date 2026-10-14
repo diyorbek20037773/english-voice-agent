@@ -35,8 +35,9 @@ const schema = z.object({
   TRANSCRIPTION_KEYWORDS: csv,
   CANDIDATE_PROFILE: z.string().max(4000).default(''),
 
-  // Access
-  APP_ACCESS_TOKEN: z.string().min(16, 'use at least 16 characters'),
+  // Access. OPEN_ACCESS=true: no unlock screen — anyone with the URL can use the app (budget limits still apply).
+  OPEN_ACCESS: z.enum(['true', 'false', '1', '0', 'yes', 'no']).default('false').transform((v) => ['true', '1', 'yes'].includes(v)),
+  APP_ACCESS_TOKEN: z.string().min(16, 'use at least 16 characters').optional(),
   ALLOWED_ORIGIN: z.url(),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
@@ -45,6 +46,8 @@ const schema = z.object({
   ANSWER_DAILY_LIMIT: z.coerce.number().int().min(1).max(10000).default(200),
   ANSWER_RATE_PER_MINUTE: z.coerce.number().int().min(1).max(600).default(20),
   VOICE_SESSIONS_PER_HOUR: z.coerce.number().int().min(1).max(1000).default(30),
+  /** Budget guard across all visitors: voice sessions started per day (Asia/Tashkent). */
+  VOICE_SESSIONS_PER_DAY: z.coerce.number().int().min(1).max(10000).default(60),
   VOICE_TOKEN_TTL_SECONDS: z.coerce.number().int().min(10).max(7200).default(60),
   ANSWER_FIRST_BYTE_TIMEOUT_MS: z.coerce.number().int().min(1000).default(30_000),
   ANSWER_IDLE_TIMEOUT_MS: z.coerce.number().int().min(1000).default(30_000),
@@ -93,7 +96,7 @@ export function normalizeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
   // A bind address never contains spaces (seen on Railway: HOST=": :" → getaddrinfo ENOTFOUND).
   if (out.HOST) out.HOST = out.HOST.replace(/\s+/g, '');
   // Enum-like values are case-insensitive (e.g. NODE_ENV=Production, LOG_LEVEL=INFO).
-  for (const key of ['NODE_ENV', 'LOG_LEVEL', 'OPENAI_QUICK_REASONING', 'OPENAI_DETAILED_REASONING']) {
+  for (const key of ['NODE_ENV', 'LOG_LEVEL', 'OPENAI_QUICK_REASONING', 'OPENAI_DETAILED_REASONING', 'OPEN_ACCESS']) {
     if (out[key]) out[key] = out[key].toLowerCase();
   }
   // ALLOWED_ORIGIN defaults to the Railway public domain (Railway provides RAILWAY_PUBLIC_DOMAIN to every
@@ -132,6 +135,11 @@ export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`Invalid or missing environment variables:\n${problems}${hints.length ? `\nHints:\n${hints.join('\n')}` : ''}`);
   }
   const { OPENAI_ANSWER_MODEL_DETAILED, ...c } = parsed.data;
+  if (!c.OPEN_ACCESS && !c.APP_ACCESS_TOKEN) {
+    throw new Error(
+      'Invalid or missing environment variables:\n  - APP_ACCESS_TOKEN: required unless OPEN_ACCESS=true\nHints:\n  - Set APP_ACCESS_TOKEN (unlock screen) or OPEN_ACCESS=true (no unlock screen).',
+    );
+  }
   const origin = new URL(c.ALLOWED_ORIGIN);
   const isLocalhost = ['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname);
   if (origin.protocol !== 'https:' && !isLocalhost) throw new Error('ALLOWED_ORIGIN must use https:// except for localhost.');

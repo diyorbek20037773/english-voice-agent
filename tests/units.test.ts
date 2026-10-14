@@ -169,3 +169,12 @@ describe('config: tolerant Railway/dashboard values', () => {
     ]);
   });
 });
+
+describe('config: access mode', () => {
+  const base = { OPENAI_API_KEY: 'sk-test-0123456789abcdefghijklmnop', ALLOWED_ORIGIN: 'http://localhost:5173' };
+  it('allows OPEN_ACCESS=true without a token and requires a token otherwise', () => {
+    expect(loadConfig({ ...base, OPEN_ACCESS: 'TRUE' } as NodeJS.ProcessEnv).OPEN_ACCESS).toBe(true);
+    expect(() => loadConfig({ ...base } as NodeJS.ProcessEnv)).toThrow(/APP_ACCESS_TOKEN: required unless OPEN_ACCESS=true/);
+    expect(loadConfig({ ...base, APP_ACCESS_TOKEN: 'abcde-fghjk-mnpqr-stuvw' } as NodeJS.ProcessEnv).OPEN_ACCESS).toBe(false);
+  });
+});

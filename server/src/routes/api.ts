@@ -86,6 +86,7 @@ export async function registerApiRoutes(api: FastifyInstance, d: Deps): Promise<
   // ---------- access ----------
   api.post('/login', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (req, reply) => {
     const body = LoginBody.parse(req.body);
+    if (auth.open) return reply.send({ authenticated: true, openAccess: true });
     if (auth.isLockedOut()) return reply.code(429).send(apiError('locked', 'Too many failed attempts. Try again in 15 minutes.'));
     if (!auth.checkToken(body.token)) {
       req.log.warn('login failed');
@@ -100,7 +101,7 @@ export async function registerApiRoutes(api: FastifyInstance, d: Deps): Promise<
     return reply.send({ authenticated: false });
   });
 
-  api.get('/me', async (req, reply) => reply.send({ authenticated: auth.isAuthenticated(req) }));
+  api.get('/me', async (req, reply) => reply.send({ authenticated: auth.isAuthenticated(req), openAccess: auth.open }));
 
   api.get('/config', authed, async (_req, reply) => {
     const body: AppConfigResponse = {
@@ -109,6 +110,9 @@ export async function registerApiRoutes(api: FastifyInstance, d: Deps): Promise<
       profileConfigured: config.CANDIDATE_PROFILE.trim().length > 0,
       dailyLimit: config.ANSWER_DAILY_LIMIT,
       answersToday: state.answersToday(),
+      openAccess: config.OPEN_ACCESS,
+      voiceSessionsToday: state.voiceSessionsToday(),
+      voiceSessionsPerDay: config.VOICE_SESSIONS_PER_DAY,
     };
     return reply.send(body);
   });
@@ -125,6 +129,9 @@ export async function registerApiRoutes(api: FastifyInstance, d: Deps): Promise<
     { ...authed, config: { rateLimit: { max: config.VOICE_SESSIONS_PER_HOUR, timeWindow: '1 hour' } } },
     async (req, reply) => {
       reply.header('Cache-Control', 'no-store').header('Pragma', 'no-cache');
+      if (state.voiceSessionsToday() >= config.VOICE_SESSIONS_PER_DAY) {
+        return reply.code(429).send(apiError('daily_limit', 'The daily voice session limit was reached. It resets at midnight (Asia/Tashkent). Typed questions still work.'));
+      }
       const body = buildTranscriptionSessionBody({
         model: config.OPENAI_TRANSCRIPTION_MODEL,
         keywords: config.TRANSCRIPTION_KEYWORDS.length ? config.TRANSCRIPTION_KEYWORDS : DEFAULT_KEYWORDS,
@@ -142,6 +149,7 @@ export async function registerApiRoutes(api: FastifyInstance, d: Deps): Promise<
       if (!result) return reply.code(502).send(apiError('upstream_error', 'Could not reach OpenAI. Check your connection and try again.'));
       const json = result.json ?? {};
       if (result.status === 200 && typeof json.value === 'string' && json.value) {
+        state.countVoiceSession();
         // Only the ephemeral token and non-secret settings go to the browser. Never logged.
         return reply.send({
           clientSecret: json.value,

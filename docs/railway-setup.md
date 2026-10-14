@@ -29,7 +29,9 @@ nusxalab qoʻying → **Update Variables**.
 | Oʻzgaruvchi | Qiymat | Izoh |
 |---|---|---|
 | `OPENAI_API_KEY` | `sk-…` (maxfiy) | Faqat backendda. Brauzerga hech qachon bormaydi |
-| `APP_ACCESS_TOKEN` | 30 belgili token (maxfiy) | Telefonni "unlock" qilish uchun |
+| `OPEN_ACCESS` | `true` | Kirish oynasi yoʻq, ilova darhol ochiladi (manzilni bilgan har kim foydalana oladi) |
+| `APP_ACCESS_TOKEN` | 30 belgili token (maxfiy) | Faqat `OPEN_ACCESS` oʻchirilganda kerak (kirish oynasi uchun) |
+| `VOICE_SESSIONS_PER_DAY` (ixtiyoriy) | `60` | Kunlik ovozli sessiyalar chegarasi (byudjet himoyasi) |
 | `NODE_ENV` | `production` | |
 | `PORT` | `3000` | Domen shu portga yoʻnaltiriladi |
 | `TRUST_PROXY_HOPS` | `1` | Railway proxy'si orqali IP/HTTPS ni toʻgʻri aniqlash |

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { TranscriptStore } from '../web/src/voice/transcript-store.ts';
 import { TurnTracker } from '../web/src/voice/turns.ts';
 import { EnergyVad } from '../web/src/voice/vad.ts';
-import { assessQuestion } from '../web/src/voice/question.ts';
+import { assessQuestion, containsQuestion, trimContext } from '../web/src/voice/question.ts';
 
 describe('TranscriptStore', () => {
   it('replaces partial text with the authoritative final transcript', () => {
@@ -143,17 +143,32 @@ describe('EnergyVad', () => {
   });
 });
 
-describe('assessQuestion', () => {
+describe('assessQuestion (automatic answering)', () => {
   it.each([
-    ['What is a closure?', 'complete'],
-    ['Explain the CAP theorem', 'complete'],
+    ['What is a closure?', 'question'],
+    ['Explain the CAP theorem.', 'question'],
+    ['Tell me about yourself.', 'question'],
+    ['Okay, so walk me through your NovdAI architecture.', 'question'],
+    ['How would you design a RAG system for a bank', 'question'],
+    ['We use Kafka for events. How would you make the consumers idempotent?', 'question'],
+    ["I'd like to hear how you evaluate an LLM in production.", 'question'],
     ['Can you explain the difference between', 'fragment'],
     ['How would you design a cache and', 'fragment'],
-    ['Tell me about,', 'fragment'],
-    ['Okay', 'too_short'],
-    ['Hmm yes', 'too_short'],
+    ['Our team builds document processing pipelines for banks.', 'statement'],
+    ['Thanks for joining us today, it is great to meet you.', 'statement'],
+    ['Okay.', 'too_short'],
+    ['Great, thanks.', 'too_short'],
   ])('%s → %s', (text, expected) => {
     expect(assessQuestion(text)).toBe(expected);
+  });
+
+  it('keeps recent context small at a sentence boundary', () => {
+    const long = 'First sentence here. '.repeat(60) + 'Last one.';
+    const t = trimContext(long, 100);
+    expect(t.length).toBeLessThanOrEqual(100);
+    expect(t.endsWith('Last one.')).toBe(true);
+    expect(containsQuestion('We build OCR. What would you improve?')).toBe(true);
+    expect(containsQuestion('We build OCR for invoices.')).toBe(false);
   });
 });
 

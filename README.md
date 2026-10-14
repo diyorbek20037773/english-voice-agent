@@ -54,7 +54,7 @@ Brauzerda oching: **http://localhost:5173**
 - Agar kirish oynasi chiqsa, `.env` dagi `APP_ACCESS_TOKEN` ni kiriting. Uni umuman koʻrmaslik uchun
   `.env` ga `OPEN_ACCESS=true` qoʻshing.
 - Pastdagi maydonga savol yozib **Enter** (yoki **↑**) bosing — javob oqim boʻlib chiqadi.
-- **Start** → ruxsat bering → inglizcha gapiring → **Answer**.
+- **Start** → ruxsat bering → inglizcha savol bering — javob oʻzi chiqadi.
 
 Hammasini tekshirish (TypeScript, 64 ta test, build, maxfiy kalit skaneri):
 
@@ -88,10 +88,9 @@ pnpm smoke:real --url https://SIZNING-MANZIL.up.railway.app --env railway-variab
 | **Start** | Tanlangan manbani yoqadi (ruxsat soʻraydi), OpenAI bilan ulanadi |
 | **Mic / Laptop / Both** | Ovoz manbai (faqat kompyuterda; Start'dan oldin tanlanadi) |
 | **Pause / Resume** | Vaqtincha tinglamaydi (bu paytda audio yuborilmaydi — pul sarflanmaydi) |
-| **Answer** | Hozirgi gapni yakunlab, savol sifatida yuboradi |
 | **Stop** | Mikrofonni butunlay oʻchiradi |
 | **Clear** | Transkript va javoblarni tozalaydi |
-| **Manual / Auto** | Manual: Answer bosasiz. Auto: ~0.8 s jimlikdan keyin oʻzi yuboradi |
+| (avtomatik) | Savol eshitilsa (~0.8 s jimlikdan keyin) javob oʻzi chiqadi. Oddiy gaplar keyingi savol uchun kontekst boʻlib saqlanadi; "Okay", "Great" kabilar eʼtiborsiz qoldiriladi |
 | **Quick / Detailed** | Qisqa yoki batafsil javob |
 | **Edit** | Transkriptni pastdagi maydonga oladi: tuzating va **↑** (yoki Enter) bosing |
 

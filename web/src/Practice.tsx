@@ -12,14 +12,13 @@ import {
   type VoiceState,
 } from './voice/transcriber.ts';
 import type { TurnResult } from './voice/turns.ts';
-import { assessQuestion, joinTranscript } from './voice/question.ts';
+import { assessQuestion, containsQuestion, joinTranscript, trimContext } from './voice/question.ts';
 import type { PracticeSessionResponse, RealtimeSessionResponse } from '../../shared/api-types.ts';
 import type { AnswerMode } from '../../shared/stream-events.ts';
 
-type InputMode = 'manual' | 'auto';
 type Banner = { kind: 'error' | 'info'; text: string } | null;
 
-/** Auto mode: submit a held fragment anyway after this much extra silence. */
+/** An unfinished question is answered anyway after this much extra silence. */
 const FRAGMENT_GRACE_MS = 2500;
 /** Stop listening after this long without speech, to protect the API budget. */
 const IDLE_STOP_MS = 5 * 60_000;
@@ -73,7 +72,6 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [level, setLevel] = useState(0);
   const [live, setLive] = useState<{ text: string; final: boolean }[]>([]);
   const [held, setHeld] = useState('');
-  const [inputMode, setInputMode] = useState<InputMode>(() => loadPref('eva.inputMode', (v) => (v === 'auto' || v === 'manual' ? v : null), 'manual'));
   const [answerMode, setAnswerMode] = useState<AnswerMode>(() =>
     loadPref('eva.answerMode', (v) => (v === 'quick' || v === 'detailed' ? v : null), 'quick'),
   );
@@ -241,34 +239,41 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
     if (text) void ask({ question: text, inputMode: 'voice', turn });
   }, [ask]);
 
-  /** Handles a finished voice turn. `force` (manual Answer) submits even an incomplete question. */
+  /** An unfinished sentence got no continuation: answer it if it is a question, otherwise keep it as context. */
+  const onFragmentGrace = useCallback(() => {
+    graceTimer.current = null;
+    if (containsQuestion(heldRef.current.text)) submitHeld();
+  }, [submitHeld]);
+
+  /**
+   * Automatic answering: questions are answered as soon as their final transcript arrives;
+   * other complete sentences are kept (trimmed) as context for the next question; fillers are ignored.
+   */
   const handleTurn = useCallback(
-    (result: TurnResult, timings: TurnTimings | null, force: boolean) => {
+    (result: TurnResult, timings: TurnTimings | null) => {
       if (result.status === 'final') {
         setBanner(null);
-        const combined = joinTranscript(heldRef.current.text, result.text);
-        const turn = timings && heldRef.current.turn ? { ...timings, speechStartAt: heldRef.current.turn.speechStartAt } : timings;
+        const prior = heldRef.current;
+        const combined = joinTranscript(prior.text, result.text);
+        const turn = timings && prior.turn ? { ...timings, speechStartAt: prior.turn.speechStartAt } : timings;
         const verdict = assessQuestion(combined);
-        if (force || verdict === 'complete') {
+        if (verdict === 'question') {
           clearHeld();
           void ask({ question: combined, inputMode: 'voice', turn });
           return;
         }
-        // Auto mode: hold an obvious fragment and join it with the next part of the speech.
-        heldRef.current = { text: combined, turn };
-        setHeld(combined);
+        if (verdict === 'too_short') return;
+        heldRef.current = { text: trimContext(combined), turn: turn ?? prior.turn };
+        setHeld(heldRef.current.text);
         if (graceTimer.current) clearTimeout(graceTimer.current);
-        if (verdict === 'fragment') graceTimer.current = setTimeout(submitHeld, FRAGMENT_GRACE_MS);
+        graceTimer.current = verdict === 'fragment' ? setTimeout(onFragmentGrace, FRAGMENT_GRACE_MS) : null;
       } else if (result.status === 'timeout') {
         setTyped(joinTranscript(heldRef.current.text, result.text));
         clearHeld();
         setBanner({ kind: 'info', text: 'The final transcript did not arrive in time. Check the text in the message box and press Send.' });
-      } else if (result.status === 'empty') {
-        if (force && heldRef.current.text) return submitHeld();
-        if (force) setBanner({ kind: 'info', text: 'No speech was captured. Speak, then press Answer — or type your question.' });
       }
     },
-    [ask, submitHeld],
+    [ask, onFragmentGrace],
   );
   const handleTurnRef = useRef(handleTurn);
   handleTurnRef.current = handleTurn;
@@ -294,15 +299,14 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
           const base = VOICE_ERROR_MESSAGES[code];
           setBanner({ kind: 'error', text: code === 'token_failed' && detail ? `${base} ${detail}` : base });
         },
-        onAutoTurn: (result, timings) => handleTurnRef.current(result, timings, false),
+        onAutoTurn: (result, timings) => handleTurnRef.current(result, timings),
       },
-      { mode: inputMode, silenceMs, source },
+      { mode: 'auto', silenceMs, source },
     );
     transcriberRef.current = t;
     return t;
-  }, [inputMode, silenceMs, source]);
+  }, [silenceMs, source]);
 
-  useEffect(() => transcriberRef.current?.setMode(inputMode), [inputMode]);
   useEffect(() => transcriberRef.current?.setSilenceMs(silenceMs), [silenceMs]);
   useEffect(() => transcriberRef.current?.setSource(source), [source]);
 
@@ -351,18 +355,6 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
     if (!typed.trim()) return;
     void ask({ question: typed, inputMode: 'typed' });
     setTyped('');
-  };
-  const onAnswer = async () => {
-    const t = transcriberRef.current;
-    if (t && voiceActive) {
-      const { result, timings } = await t.commitTurn();
-      if (result.status === 'empty' && !heldRef.current.text && typed.trim()) return sendTyped();
-      handleTurn(result, timings, true);
-    } else if (typed.trim()) {
-      sendTyped();
-    } else {
-      setBanner({ kind: 'info', text: 'Press Start to listen, or type a question.' });
-    }
   };
   const onStop = () => {
     transcriberRef.current?.stop();
@@ -443,7 +435,7 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
         {answers.length === 0 ? (
           <div className="empty">
             <h1>Ready when you are.</h1>
-            <p>Press Start and ask a technical interview question in English — or type it below.</p>
+            <p>Press Start — questions are answered automatically. You can also type below.</p>
             {laptopCapable && <p className="small">To use the audio of a Zoom/Meet call on this computer, choose Laptop or Both before Start.</p>}
           </div>
         ) : (
@@ -491,7 +483,14 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
             )}
           </div>
         )}
-        {held && <p className="hint">Waiting for the rest of the question… press Answer to send now.</p>}
+        {held && (
+          <p className="hint">
+            Kept as context for the next question.{' '}
+            <button type="button" className="link-btn small" onClick={submitHeld}>
+              Answer this
+            </button>
+          </p>
+        )}
         {voiceActive && (
           <div className="level" aria-hidden="true">
             <div className={`level-bar ${speaking ? 'speaking' : ''}`} style={{ transform: `scaleX(${voiceState === 'paused' ? 0 : level})` }} />
@@ -499,19 +498,6 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
         )}
 
         <div className="toolbar">
-          <Segmented
-            label="Input mode"
-            value={inputMode}
-            options={[
-              { value: 'manual', label: 'Manual' },
-              { value: 'auto', label: 'Auto' },
-            ]}
-            onChange={(m) => {
-              setInputMode(m);
-              savePref('eva.inputMode', m);
-              if (m === 'manual') clearHeld();
-            }}
-          />
           <Segmented
             label="Answer length"
             value={answerMode}
@@ -552,9 +538,6 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
               {voiceState === 'paused' ? 'Resume' : 'Pause'}
             </button>
           )}
-          <button type="button" className="btn primary" onClick={() => void onAnswer()} disabled={voiceState === 'transcribing' || voiceState === 'connecting'}>
-            Answer
-          </button>
           <button type="button" className="btn" onClick={onStop} disabled={!voiceActive}>
             Stop
           </button>
@@ -577,7 +560,7 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
             ↑
           </button>
         </div>
-        {inputMode === 'auto' && voiceActive && <p className="hint">Auto: answers after {silenceMs} ms of silence once the question sounds complete.</p>}
+        {voiceActive && <p className="hint">Answers automatically when a question is heard ({silenceMs} ms pause).</p>}
         {source === 'both' && !voiceActive && <p className="hint">Both: use headphones, otherwise the laptop speakers are heard twice.</p>}
       </footer>
 

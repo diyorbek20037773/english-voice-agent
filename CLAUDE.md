@@ -17,8 +17,9 @@ Answer:  browser ─POST /api/answer─▶ backend ─POST /v1/responses (stream
   audio, desktop Chrome/Edge), Both (Web Audio mix). UI is monochrome chat-style (white/black only).
 - Audio never touches the backend. The permanent `OPENAI_API_KEY` never leaves the backend.
 - `gpt-live-transcribe` has no server VAD: `turn_detection: null`; the browser commits turns with
-  `input_audio_buffer.commit` (Manual: Answer button; Auto: energy VAD + silence threshold + a local
-  "complete question" heuristic in `web/src/voice/question.ts`).
+  `input_audio_buffer.commit` after the energy VAD silence threshold. Answering is always automatic
+  (no Answer button, owner request 2026-10-14): `web/src/voice/question.ts` answers questions/interview
+  prompts, keeps other sentences as context for the next question, ignores fillers.
 - Browser-facing stream events: `answer.delta`, `answer.done`, `answer.error` (shared/stream-events.ts).
 - In-memory state (server/src/state.ts): practice sessions, follow-up turns (last 3 sent), dedup by
   session+questionId, one active answer per session (newer supersedes), daily counter, timing samples.

@@ -282,6 +282,9 @@ h3 {
   cursor: pointer;
   color: var(--fg);
 }
+.link-btn.small {
+  font-size: 0.8rem;
+}
 .meta .link-btn {
   font-size: 0.78rem;
   color: var(--muted);
@@ -473,7 +476,7 @@ h3 {
 
 .controls {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 

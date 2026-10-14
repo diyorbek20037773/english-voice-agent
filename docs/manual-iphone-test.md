@@ -18,24 +18,18 @@ Har bir qatorga ✅ yoki ❌ va izoh yozing.
 | 4 | **Start** bosing | Safari mikrofon ruxsatini soʻraydi → **Allow** |
 | 5 | Ruxsatdan keyin | Holat **Connecting…** → **Listening**, qora **Mic on** belgisi, ovoz chizigʻi harakatlanadi |
 
-## B. Manual rejim (default)
+## B. Avtomatik javob (Answer tugmasi yoʻq)
 
 | # | Qadam | Kutilgan natija |
 |---|---|---|
-| 6 | Ayting: *"What is the difference between a process and a thread?"* | Live transcript'da soʻzlar gapirayotganingizda chiqadi (kulrang → qora) |
-| 7 | **Answer** bosing | Holat **Transcribing…**; savolingiz oʻngda kulrang pufakchada, javob ostida soʻzma-soʻz chiqadi (~1–3 s) |
-| 8 | Javob tugashini kuting | Javob ostida "first text … s · total … s" va **Copy** |
-| 9 | **Answer** ni gapirmasdan bosing | "No speech was captured…" xabari, keraksiz soʻrov yoʻq |
-| 10 | Kod savoli: *"Write a function to reverse a linked list in Python."* | Kod bloki + **Copy** tugmasi; Copy bosilganda "Copied" |
-
-## C. Auto rejim
-
-| # | Qadam | Kutilgan natija |
-|---|---|---|
-| 11 | **Auto** ni tanlang | Pastda "Auto: answers after 800 ms…" yozuvi |
-| 12 | Toʻliq savol ayting va jim turing | ~1 s jimlikdan keyin javob oʻzi boshlanadi |
-| 13 | *"Can you explain the difference between"* deb toʻxtang | Sariq "Waiting for the rest of the question…"; davom ettirsangiz ikkalasi bitta savol boʻladi |
-| 14 | Settings (⚙) → silence slider'ni 1200 ms ga qoʻying | Sekinroq gapirganda erta yuborilmaydi |
+| 6 | Ayting: *"What is the difference between a process and a thread?"* va jim turing | Soʻzlar gapirayotganingizda chiqadi; ~1 s jimlikdan keyin savol oʻngda pufakchada, javob ostida soʻzma-soʻz (~2–4 s) |
+| 7 | Javob tugashini kuting | Javob ostida "first text … s · total … s" va **Copy** |
+| 8 | Ayting: *"Okay, great."* | Hech narsa yuborilmaydi (filler) |
+| 9 | Ayting: *"We build OCR pipelines for banks."* | Javob yoʻq; pastda "Kept as context for the next question" |
+| 10 | Keyin: *"How would you scale it?"* | Ikkala gap bitta savol boʻlib yuboriladi va javob chiqadi |
+| 11 | *"Can you explain the difference between"* deb toʻxtab, keyin *"TCP and UDP"* | Ikkalasi bitta savol boʻladi |
+| 12 | Kod savoli: *"Write a function to reverse a linked list in Python."* | Kod bloki + **Copy** |
+| 13 | Settings (⚙) → silence slider'ni 1200 ms ga qoʻying | Sekin gapirganda savol erta yuborilmaydi |
 
 ## D. Pause, Stop, Clear, xatolar
 

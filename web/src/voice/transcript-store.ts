@@ -127,6 +127,20 @@ export class TranscriptStore {
     }
   }
 
+  /** The session ended without finals: keep each open item's partial text as its (non-authoritative) final. */
+  finalizeOpen(): void {
+    for (const it of this.items.values()) {
+      if (it.assigned || this.done(it)) continue;
+      if (it.partial.some((p) => p !== undefined && p !== '')) {
+        it.partial.forEach((p, i) => {
+          if (it.final[i] === undefined) it.final[i] = p ?? '';
+        });
+      } else {
+        it.failed = true;
+      }
+    }
+  }
+
   clearOpen(): void {
     for (const it of this.items.values()) it.assigned = true;
   }

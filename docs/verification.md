@@ -113,3 +113,10 @@ The first answers after deploy were slower (2.8–3.4 s to first text). Result f
 Region note: the service runs in US West, not EU West. Audio goes phone→OpenAI directly, so the
 region only affects the answer request; with p50 1.1 s already under the 3 s target, no migration was
 done. An EU West comparison remains optional.
+
+## Long-session reconnect (2026-10-14, MOCKED browser APIs)
+
+`tests/reconnect.test.ts` drives the real `RealtimeTranscriber` with fake RTCPeerConnection /
+MediaStream / AudioContext: a server-closed session reconnects automatically with a new token and the
+microphone track is never stopped; at 55 minutes it commits pending audio, keeps the final text and
+rotates; Stop releases the microphone. Not yet exercised against OpenAI's real 60-minute cutoff.

@@ -82,6 +82,11 @@ export class TurnTracker {
     if ([...this.pending.itemIds].every((id) => this.store.isFinal(id))) this.finish('done');
   }
 
+  /** The session is gone: resolve a pending turn now with whatever text exists (as a timeout). */
+  expire(): void {
+    if (this.pending) this.finish('timeout');
+  }
+
   cancel(): void {
     if (!this.pending) return;
     clearTimeout(this.pending.timer);

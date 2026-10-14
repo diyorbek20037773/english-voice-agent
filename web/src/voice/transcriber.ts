@@ -14,7 +14,13 @@ import { TurnTracker, type TurnResult } from './turns.ts';
 import { EnergyVad, rmsDb } from './vad.ts';
 import type { RealtimeSessionResponse } from '../../../shared/api-types.ts';
 
-export type VoiceState = 'idle' | 'connecting' | 'listening' | 'paused' | 'transcribing' | 'error';
+export type VoiceState = 'idle' | 'connecting' | 'reconnecting' | 'listening' | 'paused' | 'transcribing' | 'error';
+
+/** OpenAI caps a Realtime session at 60 minutes; switch to a fresh one before that. */
+export const ROTATE_AFTER_MS = 55 * 60_000;
+export const FORCE_ROTATE_AFTER_MS = 58.5 * 60_000;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export type AudioSource = 'mic' | 'laptop' | 'both';
 export type VoiceErrorCode =
   | 'display_denied'
@@ -93,6 +99,9 @@ export class RealtimeTranscriber {
   private audioCtx: AudioContext | null = null;
   private vadTimer: ReturnType<typeof setInterval> | null = null;
   private disconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private rotationTimer: ReturnType<typeof setInterval> | null = null;
+  private sessionStartedAt: number | null = null;
+  private reconnecting = false;
   private generation = 0;
   private state: VoiceState = 'idle';
   private paused = false;
@@ -219,35 +228,52 @@ export class RealtimeTranscriber {
     const track = sendTrack ?? (display ?? mic)!.getAudioTracks()[0]!;
     this.sendTrack = track;
 
+    if (!(await this.connect(gen, true))) return;
+    // OpenAI ends a Realtime session after 60 minutes: rotate before that, during a pause.
+    this.rotationTimer = setInterval(() => this.maybeRotate(gen), 2000);
+  }
+
+  /**
+   * Opens a WebRTC call to OpenAI with a fresh ephemeral token and sends the existing capture track.
+   * Used for the first connection and for reconnects; the microphone / shared audio stays open.
+   */
+  private async connect(gen: number, fatal: boolean): Promise<boolean> {
+    const track = this.sendTrack;
+    if (!track) return false;
     let token: RealtimeSessionResponse;
     try {
       token = await this.getToken();
     } catch (err) {
-      return this.fail('token_failed', (err as Error).message);
+      if (fatal) this.fail('token_failed', (err as Error).message);
+      return false;
     }
-    if (gen !== this.generation) return;
+    if (gen !== this.generation) return false;
 
+    const pc = new RTCPeerConnection();
+    const dc = pc.createDataChannel('oai-events');
+    this.pc = pc;
+    this.dc = dc;
     try {
-      const pc = new RTCPeerConnection();
-      this.pc = pc;
       this.sender = pc.addTrack(track, new MediaStream([track]));
-      const dc = pc.createDataChannel('oai-events');
-      this.dc = dc;
+      if (this.paused) void this.sender.replaceTrack(null);
       dc.addEventListener('open', () => {
-        if (gen === this.generation) this.setState(this.paused ? 'paused' : 'listening');
+        if (gen !== this.generation || this.dc !== dc) return;
+        this.sessionStartedAt = performance.now();
+        this.setState(this.paused ? 'paused' : 'listening');
       });
       dc.addEventListener('message', (e) => {
-        if (gen === this.generation) this.onServerEvent(e.data);
+        if (gen === this.generation && this.dc === dc) this.onServerEvent(e.data);
       });
       dc.addEventListener('close', () => {
-        if (gen === this.generation && this.active) this.fail('connection_lost');
+        if (gen === this.generation && this.dc === dc && this.active) void this.reconnect('drop');
       });
       pc.addEventListener('connectionstatechange', () => {
-        if (gen !== this.generation) return;
-        if (pc.connectionState === 'failed') this.fail('connection_lost');
+        if (gen !== this.generation || this.pc !== pc) return;
+        if (pc.connectionState === 'failed') void this.reconnect('drop');
         else if (pc.connectionState === 'disconnected') {
           this.disconnectTimer ??= setTimeout(() => {
-            if (gen === this.generation && pc.connectionState !== 'connected') this.fail('connection_lost');
+            this.disconnectTimer = null;
+            if (gen === this.generation && this.pc === pc && pc.connectionState !== 'connected') void this.reconnect('drop');
           }, 4000);
         } else if (pc.connectionState === 'connected' && this.disconnectTimer) {
           clearTimeout(this.disconnectTimer);
@@ -264,10 +290,78 @@ export class RealtimeTranscriber {
       });
       if (!res.ok) throw new Error(`SDP exchange failed (HTTP ${res.status})`);
       const answerSdp = await res.text();
-      if (gen !== this.generation) return;
+      if (gen !== this.generation || this.pc !== pc) return false;
       await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+      return true;
     } catch (err) {
-      if (gen === this.generation) this.fail('rtc_failed', (err as Error).message);
+      if (this.pc === pc) this.closeConnection();
+      if (fatal && gen === this.generation) this.fail('rtc_failed', (err as Error).message);
+      return false;
+    }
+  }
+
+  /** Closes only the WebRTC call; captured audio and the audio graph keep running. */
+  private closeConnection(): void {
+    const { pc, dc } = this;
+    this.pc = null;
+    this.dc = null;
+    this.sender = null;
+    this.sessionStartedAt = null;
+    if (this.disconnectTimer) clearTimeout(this.disconnectTimer);
+    this.disconnectTimer = null;
+    try {
+      dc?.close();
+    } catch {
+      /* already closed */
+    }
+    try {
+      pc?.close();
+    } catch {
+      /* already closed */
+    }
+  }
+
+  private maybeRotate(gen: number): void {
+    if (gen !== this.generation || this.reconnecting || this.sessionStartedAt === null || this.dc?.readyState !== 'open') return;
+    const age = performance.now() - this.sessionStartedAt;
+    const quiet = !this.vad.isSpeaking && !this.turns.busy;
+    if ((age >= ROTATE_AFTER_MS && quiet) || age >= FORCE_ROTATE_AFTER_MS) void this.reconnect('rotate');
+  }
+
+  /**
+   * Keeps listening across OpenAI's 60-minute session limit and network drops: opens a new call
+   * with a fresh token while the microphone / shared laptop audio keeps running (no new prompts).
+   */
+  private async reconnect(reason: 'rotate' | 'drop'): Promise<void> {
+    if (this.reconnecting || !this.active) return;
+    this.reconnecting = true;
+    const gen = this.generation;
+    try {
+      if (reason === 'rotate' && this.dc?.readyState === 'open' && (this.vad.hasUncommittedSpeech || this.store.openItems().some((i) => !i.final))) {
+        // Get the final text of what was already said in this session before leaving it.
+        this.send({ type: 'input_audio_buffer.commit' });
+        const deadline = performance.now() + 3000;
+        while (performance.now() < deadline && gen === this.generation && this.store.openItems().some((i) => !i.final)) await sleep(100);
+      }
+      if (gen !== this.generation) return;
+      this.closeConnection();
+      if (reason === 'drop') {
+        // The old session is gone: no finals will come for it. Hand any pending turn to the
+        // user as editable text and keep the remaining partial text as best effort.
+        this.turns.expire();
+        this.store.finalizeOpen();
+        this.emitLive();
+      }
+      this.setState('reconnecting');
+      for (let attempt = 0; attempt < 4; attempt++) {
+        if (gen !== this.generation || !this.active) return;
+        if (attempt > 0) await sleep(1000 * 2 ** (attempt - 1));
+        if (gen !== this.generation || !this.active) return;
+        if (await this.connect(gen, false)) return; // the data channel 'open' event resumes listening
+      }
+      if (gen === this.generation) this.fail('connection_lost');
+    } finally {
+      if (gen === this.generation) this.reconnecting = false;
     }
   }
 
@@ -284,13 +378,18 @@ export class RealtimeTranscriber {
       this.cb.onSpeaking(true);
     } else {
       this.cb.onSpeaking(false);
-      if (this.opts.mode === 'auto' && this.vad.hasUncommittedSpeech && !this.turns.busy) {
+      if (this.opts.mode === 'auto' && this.vad.hasUncommittedSpeech && !this.turns.busy && this.dc?.readyState === 'open') {
         void this.runTurn(ev.lastVoiceAt).then(({ result, timings }) => this.cb.onAutoTurn(result, timings));
       }
     }
   }
 
   /** Manual mode "Answer": commit the captured turn and wait for its final transcript. */
+  /** Test hook: age of the current OpenAI session in ms (null when not connected). */
+  get sessionAgeMs(): number | null {
+    return this.sessionStartedAt === null ? null : performance.now() - this.sessionStartedAt;
+  }
+
   async commitTurn(): Promise<{ result: TurnResult; timings: TurnTimings | null }> {
     if (!this.dc || this.dc.readyState !== 'open') return { result: { status: 'empty' }, timings: null };
     return this.runTurn(performance.now());
@@ -380,22 +479,11 @@ export class RealtimeTranscriber {
   private teardown(): void {
     this.turns.cancel();
     if (this.vadTimer) clearInterval(this.vadTimer);
-    if (this.disconnectTimer) clearTimeout(this.disconnectTimer);
+    if (this.rotationTimer) clearInterval(this.rotationTimer);
     this.vadTimer = null;
-    this.disconnectTimer = null;
-    try {
-      this.dc?.close();
-    } catch {
-      /* already closed */
-    }
-    try {
-      this.pc?.close();
-    } catch {
-      /* already closed */
-    }
-    this.dc = null;
-    this.pc = null;
-    this.sender = null;
+    this.rotationTimer = null;
+    this.reconnecting = false;
+    this.closeConnection();
     this.releaseStreams();
     void this.audioCtx?.close().catch(() => {});
     this.audioCtx = null;

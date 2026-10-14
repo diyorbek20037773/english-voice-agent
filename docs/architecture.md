@@ -36,6 +36,14 @@ the user scrolled up. A sticky bottom dock holds the live transcript, mode toggl
 (Manual/Auto, Quick/Detailed, Mic/Laptop/Both), Start/Pause, Answer, Stop, Clear and the composer
 (Enter sends on desktop).
 
+## Long sessions (60-minute cap)
+
+OpenAI ends a Realtime session after 60 minutes. The transcriber rotates to a fresh session at
+55 minutes during a pause (forced at 58.5 minutes): it commits the open audio to get its final text,
+then opens a new WebRTC call with a new ephemeral token while the microphone / shared laptop audio
+keeps running (no new permission or share prompt). Unexpected drops reconnect the same way (up to 4
+attempts with backoff); text of a turn interrupted by a drop is handed back as editable text.
+
 ## Request flows
 
 **Realtime session.** `POST /api/realtime/session` (authenticated, 30/hour) creates an ephemeral

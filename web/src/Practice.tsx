@@ -409,6 +409,8 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
           ? 'Answering…'
           : voiceState === 'connecting'
             ? 'Connecting…'
+            : voiceState === 'reconnecting'
+              ? 'Reconnecting…'
             : voiceState === 'paused'
               ? 'Paused'
               : voiceState === 'listening'

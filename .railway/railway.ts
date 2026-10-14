@@ -23,7 +23,6 @@ export default defineRailway(() => {
     },
     env: {
       NODE_ENV: 'production',
-      HOST: '::',
       PORT: '3000',
       TRUST_PROXY_HOPS: '1',
       OPENAI_TRANSCRIPTION_MODEL: 'gpt-live-transcribe',

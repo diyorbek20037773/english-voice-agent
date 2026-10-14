@@ -1,0 +1,268 @@
+{
+  "at": "2026-10-14T02:40:44.935Z",
+  "base": "https://english-voice-agent-production.up.railway.app",
+  "client": "win32 node v22.17.0",
+  "config": {
+    "modes": {
+      "quick": {
+        "model": "gpt-6-luna",
+        "reasoningEffort": "none"
+      },
+      "detailed": {
+        "model": "gpt-6-luna",
+        "reasoningEffort": "low"
+      }
+    },
+    "transcriptionModel": "gpt-live-transcribe",
+    "profileConfigured": false,
+    "dailyLimit": 400,
+    "answersToday": 0
+  },
+  "models": {
+    "checked": true,
+    "available": {
+      "gpt-6-luna": true,
+      "gpt-live-transcribe": true
+    }
+  },
+  "realtimeSession": {
+    "status": 200,
+    "ms": 1118,
+    "tokenPrefix": "ek_",
+    "error": null
+  },
+  "answers": {
+    "quick": {
+      "firstTextMs": 2810,
+      "totalMs": 4288,
+      "chars": 255,
+      "deltas": 65,
+      "end": {
+        "type": "answer.done",
+        "requestId": "7646a915-1bb9-4118-a919-4e4d129d6b7d",
+        "questionId": "smoke_1791945650075_9mj9te",
+        "truncated": false,
+        "replayed": false,
+        "model": "gpt-6-luna"
+      }
+    },
+    "follow": {
+      "firstTextMs": 3374,
+      "totalMs": 3641,
+      "chars": 171,
+      "deltas": 34,
+      "end": {
+        "type": "answer.done",
+        "requestId": "09a023d8-9913-4c61-90a4-e7f8138d1610",
+        "questionId": "smoke_1791945654363_eueh1z",
+        "truncated": false,
+        "replayed": false,
+        "model": "gpt-6-luna"
+      }
+    },
+    "detailed": {
+      "firstTextMs": 1443,
+      "totalMs": 6351,
+      "chars": 2175,
+      "deltas": 474,
+      "end": {
+        "type": "answer.done",
+        "requestId": "a7cb7199-b53a-47ab-9b3e-7bab4241e66e",
+        "questionId": "smoke_1791945658005_jru6n2",
+        "truncated": false,
+        "replayed": false,
+        "model": "gpt-6-luna"
+      }
+    }
+  },
+  "latency": {
+    "summary": {
+      "runs": 20,
+      "ok": 20,
+      "firstText": {
+        "p50": 1108,
+        "p95": 2171
+      },
+      "fullAnswer": {
+        "p50": 2121,
+        "p95": 3490
+      },
+      "over3sOrFailed": 1
+    },
+    "rows": [
+      {
+        "q": "What is the difference between a process and a thread?",
+        "firstTextMs": 2171,
+        "totalMs": 3490,
+        "ok": true
+      },
+      {
+        "q": "Explain what a REST API is.",
+        "firstTextMs": 1883,
+        "totalMs": 3016,
+        "ok": true
+      },
+      {
+        "q": "What is a race condition?",
+        "firstTextMs": 984,
+        "totalMs": 1888,
+        "ok": true
+      },
+      {
+        "q": "How does a hash map handle collisions?",
+        "firstTextMs": 1426,
+        "totalMs": 2393,
+        "ok": true
+      },
+      {
+        "q": "What is the CAP theorem?",
+        "firstTextMs": 1102,
+        "totalMs": 2175,
+        "ok": true
+      },
+      {
+        "q": "What is the difference between SQL and NoSQL databases?",
+        "firstTextMs": 1416,
+        "totalMs": 2875,
+        "ok": true
+      },
+      {
+        "q": "Explain database indexing.",
+        "firstTextMs": 920,
+        "totalMs": 2007,
+        "ok": true
+      },
+      {
+        "q": "What is eventual consistency?",
+        "firstTextMs": 1108,
+        "totalMs": 1869,
+        "ok": true
+      },
+      {
+        "q": "What does idempotent mean for an HTTP method?",
+        "firstTextMs": 1328,
+        "totalMs": 2121,
+        "ok": true
+      },
+      {
+        "q": "What is the difference between TCP and UDP?",
+        "firstTextMs": 941,
+        "totalMs": 1960,
+        "ok": true
+      },
+      {
+        "q": "Explain dependency injection.",
+        "firstTextMs": 959,
+        "totalMs": 1778,
+        "ok": true
+      },
+      {
+        "q": "What is a closure in JavaScript?",
+        "firstTextMs": 4641,
+        "totalMs": 5319,
+        "ok": true
+      },
+      {
+        "q": "What is the event loop in Node.js?",
+        "firstTextMs": 901,
+        "totalMs": 2063,
+        "ok": true
+      },
+      {
+        "q": "How would you reverse a linked list?",
+        "firstTextMs": 993,
+        "totalMs": 2139,
+        "ok": true
+      },
+      {
+        "q": "What is Big O notation?",
+        "firstTextMs": 1619,
+        "totalMs": 2371,
+        "ok": true
+      },
+      {
+        "q": "Explain the difference between authentication and authorization.",
+        "firstTextMs": 1163,
+        "totalMs": 1596,
+        "ok": true
+      },
+      {
+        "q": "What is a deadlock and how can you prevent it?",
+        "firstTextMs": 1330,
+        "totalMs": 2759,
+        "ok": true
+      },
+      {
+        "q": "What is horizontal versus vertical scaling?",
+        "firstTextMs": 915,
+        "totalMs": 2013,
+        "ok": true
+      },
+      {
+        "q": "How does HTTPS protect data in transit?",
+        "firstTextMs": 1065,
+        "totalMs": 2196,
+        "ok": true
+      },
+      {
+        "q": "What is a message queue used for?",
+        "firstTextMs": 1182,
+        "totalMs": 2066,
+        "ok": true
+      }
+    ]
+  },
+  "serverTimings": {
+    "rows": [
+      {
+        "metric": "firstPartialMs",
+        "count": 0,
+        "p50": null,
+        "p95": null
+      },
+      {
+        "metric": "endOfSpeechToFinalMs",
+        "count": 0,
+        "p50": null,
+        "p95": null
+      },
+      {
+        "metric": "answerRequestToFirstTextMs",
+        "count": 0,
+        "p50": null,
+        "p95": null
+      },
+      {
+        "metric": "endOfSpeechToFirstAnswerMs",
+        "count": 0,
+        "p50": null,
+        "p95": null
+      },
+      {
+        "metric": "fullAnswerMs",
+        "count": 0,
+        "p50": null,
+        "p95": null
+      },
+      {
+        "metric": "serverOpenAiHeadersMs",
+        "count": 22,
+        "p50": 414,
+        "p95": 1487
+      },
+      {
+        "metric": "serverFirstDeltaMs",
+        "count": 22,
+        "p50": 852,
+        "p95": 2539
+      },
+      {
+        "metric": "serverTotalMs",
+        "count": 22,
+        "p50": 1828,
+        "p95": 3936
+      }
+    ],
+    "since": "2026-10-14T02:39:59.622Z"
+  }
+}

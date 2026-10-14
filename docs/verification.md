@@ -84,3 +84,32 @@ docs.railway.com/reference/variables), misspelled names are reported with a "did
 the Railway env generator no longer quotes values or emits `ALLOWED_ORIGIN`. Verified in Docker: the
 owner's exact variable set + a domain now starts and answers `/healthz` over IPv4 and IPv6; without a
 domain it exits with an actionable hint. Not yet confirmed on Railway itself.
+
+## Railway production (REAL, 2026-10-14)
+
+Service `english-voice-agent` in project `gallant-flexibility`, region **us-west2**, 1 replica,
+sleep off, healthcheck `/healthz`. URL: https://english-voice-agent-production.up.railway.app
+
+Root cause of the failed deploys (read with `railway logs --deployment`): `HOST` was stored as
+`": :"` → `getaddrinfo ENOTFOUND : :` on listen; `ALLOWED_ORIGIN` was stored with literal quotes
+(Railway keeps quotes). Fixed by deleting both variables (defaults `::` and
+`https://$RAILWAY_PUBLIC_DOMAIN` are correct) and by normalizing env values in code (commit 3594446).
+Deployment 41e1516c → SUCCESS; startup log clean.
+
+| Check (client: owner's laptop, Node fetch) | Result |
+|---|---|
+| `/healthz`, `/` | 200; CSP, HSTS, Permissions-Policy, X-Frame-Options present |
+| Unauthenticated realtime session / wrong token / cross-origin POST | 401 / 401 / 403 |
+| Model access | gpt-6-luna, gpt-live-transcribe available |
+| Ephemeral token via Railway | HTTP 200 in 1.1 s, `ek_`, 60 s, no-store |
+| WebRTC transcription with the Railway-issued token (aiortc + TTS) | SDP 201; first partial 0.44 s; final 0.86 s after commit; transcript exact |
+| 20 Quick questions: request → first text | **p50 1,108 ms, p95 2,171 ms**; 1/20 over 3 s (4,641 ms) |
+| 20 Quick questions: request → full answer | p50 2,121 ms, p95 3,490 ms |
+| Server side (22 answers): OpenAI headers / first text / total | p50 414 / 852 / 1,828 ms; p95 1,487 / 2,539 / 3,936 ms |
+| Network laptop → Railway | TCP connect ~0.15–0.22 s; `/healthz` round trip 0.63–0.83 s (incl. TLS) |
+
+The first answers after deploy were slower (2.8–3.4 s to first text). Result file:
+`docs/results/smoke-english-voice-agent-production-up-railway-app-2026-10-14-02-42.json`.
+Region note: the service runs in US West, not EU West. Audio goes phone→OpenAI directly, so the
+region only affects the answer request; with p50 1.1 s already under the 3 s target, no migration was
+done. An EU West comparison remains optional.

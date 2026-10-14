@@ -31,7 +31,6 @@ nusxalab qoʻying → **Update Variables**.
 | `OPENAI_API_KEY` | `sk-…` (maxfiy) | Faqat backendda. Brauzerga hech qachon bormaydi |
 | `APP_ACCESS_TOKEN` | 30 belgili token (maxfiy) | Telefonni "unlock" qilish uchun |
 | `NODE_ENV` | `production` | |
-| `HOST` | `::` | IPv4+IPv6 (Railway talabi) |
 | `PORT` | `3000` | Domen shu portga yoʻnaltiriladi |
 | `TRUST_PROXY_HOPS` | `1` | Railway proxy'si orqali IP/HTTPS ni toʻgʻri aniqlash |
 | `OPENAI_TRANSCRIPTION_MODEL` | `gpt-live-transcribe` | |

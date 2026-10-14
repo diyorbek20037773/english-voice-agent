@@ -79,7 +79,6 @@ upsertEnvFile(
   'railway-variables/web.env',
   {
     NODE_ENV: 'production',
-    HOST: '::',
     PORT: '3000',
     TRUST_PROXY_HOPS: '1',
     APP_ACCESS_TOKEN: keepOr(web, 'APP_ACCESS_TOKEN', accessToken, 'railway'),
@@ -89,7 +88,7 @@ upsertEnvFile(
     ANSWER_DAILY_LIMIT: web.ANSWER_DAILY_LIMIT || '200',
   },
   undefined,
-  { quote: false, remove: ['ALLOWED_ORIGIN', 'OPENAI_REALTIME_MODEL', ...(web.OPENAI_ANSWER_MODEL_DETAILED ? [] : ['OPENAI_ANSWER_MODEL_DETAILED'])] },
+  { quote: false, remove: ['ALLOWED_ORIGIN', 'HOST', 'OPENAI_REALTIME_MODEL', ...(web.OPENAI_ANSWER_MODEL_DETAILED ? [] : ['OPENAI_ANSWER_MODEL_DETAILED'])] },
 );
 
 console.log('Env files ready (secret values are only inside these gitignored files):');

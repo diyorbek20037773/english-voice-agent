@@ -74,4 +74,6 @@ Answer:  browser ─POST /api/answer─▶ backend ─POST /v1/responses (stream
 - Done: backend + frontend, real OpenAI verified (models, ephemeral token, WebRTC transcription via
   aiortc, streaming answers, 20-question latency), 64 automated tests, Docker image, Railway config,
   docs. See docs/verification.md.
-- Remaining (owner): Railway login + project + variables; iPhone Safari manual test; Railway latency run.
+- Deployed: https://english-voice-agent-production.up.railway.app (Railway project gallant-flexibility, service
+  english-voice-agent, us-west2). Railway CLI is installed and linked in this folder (railway logs/variables).
+- Remaining (owner): iPhone Safari + laptop-audio manual tests (docs/manual-iphone-test.md).

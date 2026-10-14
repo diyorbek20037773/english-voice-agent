@@ -78,4 +78,7 @@ Answer:  browser ─POST /api/answer─▶ backend ─POST /v1/responses (stream
   docs. See docs/verification.md.
 - Deployed: https://english-voice-agent-production.up.railway.app (Railway project gallant-flexibility, service
   english-voice-agent, us-west2). Railway CLI is installed and linked in this folder (railway logs/variables).
+- Answers are grounded in CANDIDATE_PROFILE (from the owner's CV; source text in gitignored
+  secrets/candidate-profile.txt, CV PDF gitignored) and framed by TARGET_ROLE=AI Solutions Engineer; the
+  profile sits in the static instructions (prompt-cacheable). Update via railway variable set --stdin.
 - Remaining (owner): iPhone Safari + laptop-audio manual tests (docs/manual-iphone-test.md).

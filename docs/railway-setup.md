@@ -41,7 +41,8 @@ nusxalab qoʻying → **Update Variables**.
 | `OPENAI_QUICK_REASONING` | `none` | |
 | `OPENAI_DETAILED_REASONING` | `low` | |
 | `ANSWER_DAILY_LIMIT` | `200` | Kunlik javob chegarasi (byudjet himoyasi) |
-| `CANDIDATE_PROFILE` (ixtiyoriy) | Oʻzingiz haqingizdagi faktlar (inglizcha) | Faqat shaxsiy savollarda ishlatiladi |
+| `CANDIDATE_PROFILE` | CV asosidagi professional faktlar (inglizcha, kontaktlarsiz) | Har bir javob shu faktlarga tayanadi; uydirma qoʻshilmaydi |
+| `TARGET_ROLE` | `AI Solutions Engineer` | Javoblar shu lavozim nuqtai nazaridan beriladi |
 
 ## 3. Sozlamalar (Settings)
 
@@ -129,3 +130,11 @@ Hobby: $5/oy, ichida $5 foydalanish krediti. Narxlar: RAM ~$10 / GB-oy, CPU ~$20
 Bu taxminan $0.4/oy RAM degani — CPU va trafik qoʻshilsa ham odatda $5 kredit ichida qoladi,
 lekin Railway → Metrics/Usage boʻlimida haqiqiy sarfni tekshirib turing.
 OpenAI xarajati alohida (README → Narxlar).
+
+## CV / profilni yangilash
+
+Profil matni kompyuterda `secrets/candidate-profile.txt` da (GitHub'ga chiqmaydi). Uni tahrirlab:
+
+```powershell
+railway variable set CANDIDATE_PROFILE --stdin --service english-voice-agent < secrets/candidate-profile.txt
+```

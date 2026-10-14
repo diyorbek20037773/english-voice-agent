@@ -149,6 +149,11 @@ describe('config: tolerant Railway/dashboard values', () => {
     expect(c.modes.detailed.model).toBe('gpt-6-luna');
   });
 
+  it('repairs the exact Railway values seen in production (HOST ": :", quoted ALLOWED_ORIGIN, empty models)', () => {
+    const c = loadConfig({ ...env, HOST: ': :', ALLOWED_ORIGIN: "'https://english-voice-agent-production.up.railway.app'", OPENAI_ANSWER_MODEL_DETAILED: '', OPENAI_REALTIME_MODEL: '', RAILWAY_PUBLIC_DOMAIN: 'english-voice-agent-production.up.railway.app' } as NodeJS.ProcessEnv);
+    expect([c.HOST, c.ALLOWED_ORIGIN, c.secureCookies]).toEqual(['::', 'https://english-voice-agent-production.up.railway.app', true]);
+  });
+
   it('accepts enum values in any case and empty PORT/LOG_LEVEL', () => {
     const c = loadConfig({ ...env, ALLOWED_ORIGIN: 'http://localhost:5173', NODE_ENV: 'Production', LOG_LEVEL: 'INFO', OPENAI_QUICK_REASONING: 'None', PORT: '', TIMEZONE: '' } as NodeJS.ProcessEnv);
     expect([c.NODE_ENV, c.LOG_LEVEL, c.OPENAI_QUICK_REASONING, c.PORT, c.TIMEZONE]).toEqual(['production', 'info', 'none', 3000, 'Asia/Tashkent']);

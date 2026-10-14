@@ -90,6 +90,8 @@ export function normalizeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
     if (v.length >= 2 && (v[0] === "'" || v[0] === '"') && v[v.length - 1] === v[0]) v = v.slice(1, -1).trim();
     if (v !== '') out[key.trim()] = v;
   }
+  // A bind address never contains spaces (seen on Railway: HOST=": :" → getaddrinfo ENOTFOUND).
+  if (out.HOST) out.HOST = out.HOST.replace(/\s+/g, '');
   // Enum-like values are case-insensitive (e.g. NODE_ENV=Production, LOG_LEVEL=INFO).
   for (const key of ['NODE_ENV', 'LOG_LEVEL', 'OPENAI_QUICK_REASONING', 'OPENAI_DETAILED_REASONING']) {
     if (out[key]) out[key] = out[key].toLowerCase();

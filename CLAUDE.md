@@ -78,7 +78,10 @@ Answer:  browser ─POST /api/answer─▶ backend ─POST /v1/responses (stream
   aiortc, streaming answers, 20-question latency), 64 automated tests, Docker image, Railway config,
   docs. See docs/verification.md.
 - Deployed: https://english-voice-agent-production.up.railway.app (Railway project gallant-flexibility, service
-  english-voice-agent, us-west2). Railway CLI is installed and linked in this folder (railway logs/variables).
+  english-voice-agent, us-west2). Railway CLI is installed and linked in this folder (railway logs/variables;
+  on Windows call `$env:APPDATA\npm\railway.cmd` if `railway` is not on PATH).
+- STOPPED 2026-10-15 between interviews to save cost (`railway down -y`; variables, domain and key kept).
+  Restart before an interview: `railway redeploy -y`. Every push to main auto-deploys (restarts) it.
 - Answers are grounded in CANDIDATE_PROFILE (from the owner's CV; source text in gitignored
   secrets/candidate-profile.txt, CV PDF gitignored) and framed by TARGET_ROLE=AI Solutions Engineer; the
   profile sits in the static instructions (prompt-cacheable). Update via railway variable set --stdin.

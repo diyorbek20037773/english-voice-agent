@@ -132,6 +132,26 @@ Bu taxminan $0.4/oy RAM degani — CPU va trafik qoʻshilsa ham odatda $5 kredit
 lekin Railway → Metrics/Usage boʻlimida haqiqiy sarfni tekshirib turing.
 OpenAI xarajati alohida (README → Narxlar).
 
+## Interviewlar orasida toʻxtatish va qayta yoqish
+
+Toʻxtatish — servis, domen va barcha oʻzgaruvchilar (OpenAI kaliti ham) saqlanib qoladi, lekin
+konteyner ishlamaydi: Railway CPU/RAM hisoblamaydi, OpenAI'ga hech kim soʻrov yubora olmaydi:
+
+```powershell
+railway down -y
+```
+
+Qayta yoqish (interviewdan ~5 daqiqa oldin), keyin tekshirish:
+
+```powershell
+railway redeploy -y
+curl https://english-voice-agent-production.up.railway.app/healthz   # {"status":"ok"}
+```
+
+Diqqat: `main` ga har bir `git push` servisni avtomatik qayta yoqadi (GitHub orqali deploy).
+Toʻxtatilgan paytda push qilsangiz, deploy tugagach yana `railway down -y`.
+Hobby obunasi ($5/oy) servis toʻxtagan boʻlsa ham olinadi; jami sarf: `railway usage projects`.
+
 ## CV / profilni yangilash
 
 Profil matni kompyuterda `secrets/candidate-profile.txt` da (GitHub'ga chiqmaydi). Uni tahrirlab:

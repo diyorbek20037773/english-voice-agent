@@ -30,6 +30,8 @@ const schema = z.object({
   OPENAI_ANSWER_MODEL: modelId.default('gpt-6-luna'),
   /** Detailed mode model; defaults to OPENAI_ANSWER_MODEL to protect a small budget. */
   OPENAI_ANSWER_MODEL_DETAILED: z.string().default(''),
+  /** "fast" (= priority processing) costs 2x per token but keeps time-to-first-token more consistent. */
+  OPENAI_SERVICE_TIER: z.enum(['default', 'fast', 'priority', 'auto', 'flex']).default('default'),
   OPENAI_QUICK_REASONING: effort.default('none'),
   OPENAI_DETAILED_REASONING: effort.default('low'),
   TRANSCRIPTION_KEYWORDS: csv,
@@ -98,7 +100,7 @@ export function normalizeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
   // A bind address never contains spaces (seen on Railway: HOST=": :" → getaddrinfo ENOTFOUND).
   if (out.HOST) out.HOST = out.HOST.replace(/\s+/g, '');
   // Enum-like values are case-insensitive (e.g. NODE_ENV=Production, LOG_LEVEL=INFO).
-  for (const key of ['NODE_ENV', 'LOG_LEVEL', 'OPENAI_QUICK_REASONING', 'OPENAI_DETAILED_REASONING', 'OPEN_ACCESS']) {
+  for (const key of ['NODE_ENV', 'LOG_LEVEL', 'OPENAI_QUICK_REASONING', 'OPENAI_DETAILED_REASONING', 'OPEN_ACCESS', 'OPENAI_SERVICE_TIER']) {
     if (out[key]) out[key] = out[key].toLowerCase();
   }
   // ALLOWED_ORIGIN defaults to the Railway public domain (Railway provides RAILWAY_PUBLIC_DOMAIN to every

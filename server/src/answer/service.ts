@@ -130,6 +130,7 @@ export class AnswerService {
       image: r.kind === 'image' ? r.image : undefined,
       profile: config.CANDIDATE_PROFILE,
       targetRole: config.TARGET_ROLE,
+      serviceTier: config.OPENAI_SERVICE_TIER,
       model: profile.model,
       reasoningEffort: profile.reasoningEffort,
     });
@@ -308,6 +309,7 @@ export class AnswerService {
         cachedTokens: usage?.input_tokens_details?.cached_tokens,
         outputTokens: usage?.output_tokens,
         reasoningTokens: usage?.output_tokens_details?.reasoning_tokens,
+        serviceTier: doneEv?.serviceTier,
       },
       'answer finished',
     );

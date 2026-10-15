@@ -312,6 +312,9 @@ describe('limits and static hosting', () => {
     const { url, app } = await startApp({}, dir);
     const res = await fetch(`${url}/some/deep/link`);
     expect(res.status).toBe(200);
+    for (const probe of ['/.env', '/public/.env', '/.git/config', '/config.js', '/.well-known/x']) {
+      expect((await fetch(`${url}${probe}`)).status).toBe(404);
+    }
     const csp = res.headers.get('content-security-policy')!;
     expect(csp).toContain("connect-src 'self' https://api.openai.com");
     expect(csp).toContain("script-src 'self'");

@@ -100,6 +100,7 @@ export interface BuildInput {
   image?: string;
   profile: string;
   targetRole?: string;
+  serviceTier?: string;
   model: string;
   reasoningEffort: string | null;
 }
@@ -145,7 +146,7 @@ export function buildResponsesRequest(input: BuildInput): { body: Record<string,
     input: messages,
     stream: true,
     max_output_tokens: maxOutputTokens,
-    service_tier: 'default',
+    service_tier: input.serviceTier ?? 'default',
     store: false,
     prompt_cache_key: `eva-${input.mode}-v2`,
   };

@@ -14,7 +14,7 @@ const STREAM =
   sse('response.output_text.delta', { delta: 'Привет — ' }) +
   sse('response.output_text.delta', { delta: 'naïve 🚀 ' }) +
   sse('response.output_text.delta', { delta: '日本語 done.' }) +
-  sse('response.completed', { response: { status: 'completed', usage: { input_tokens: 10, output_tokens: 5 } } });
+  sse('response.completed', { response: { status: 'completed', service_tier: 'fast', usage: { input_tokens: 10, output_tokens: 5 } } });
 
 function collect(chunks: Uint8Array[]): ResponsesEvent[] {
   const a = new ResponsesStreamAdapter();
@@ -34,7 +34,7 @@ describe('ResponsesStreamAdapter (OpenAI Responses API SSE)', () => {
   it('parses a whole stream', () => {
     const events = collect([enc.encode(STREAM)]);
     expect(textOf(events)).toBe('Привет — naïve 🚀 日本語 done.');
-    expect(events.at(-1)).toMatchObject({ kind: 'done', status: 'completed' });
+    expect(events.at(-1)).toMatchObject({ kind: 'done', status: 'completed', serviceTier: 'fast' });
   });
 
   it('handles every possible split point, including inside multi-byte UTF-8 characters', () => {

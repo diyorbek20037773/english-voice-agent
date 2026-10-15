@@ -35,6 +35,7 @@ describe('Responses API request', () => {
     expect(body).toMatchObject({ model: 'gpt-6-luna', stream: true, store: false, service_tier: 'default', reasoning: { effort: 'none' }, max_output_tokens: 700 });
     expect(body).not.toHaveProperty('temperature');
     expect(String(body.instructions)).toContain('Respond only in English.');
+    expect(buildResponsesRequest({ ...base, question: 'x?', serviceTier: 'fast' }).body.service_tier).toBe('fast');
     expect(maxOutputTokens).toBe(700);
   });
 

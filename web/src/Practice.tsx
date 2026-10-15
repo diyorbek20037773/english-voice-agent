@@ -283,7 +283,8 @@ export function Practice({ onLoggedOut }: { onLoggedOut: () => void }) {
         setBanner(null);
         const prior = heldRef.current;
         const combined = joinTranscript(prior.text, result.text);
-        const turn = timings && prior.turn ? { ...timings, speechStartAt: prior.turn.speechStartAt } : timings;
+        // Timings describe the latest spoken turn (held context may be minutes old).
+        const turn = timings ?? prior.turn;
         const verdict = assessQuestion(combined);
         if (verdict === 'question') {
           clearHeld();

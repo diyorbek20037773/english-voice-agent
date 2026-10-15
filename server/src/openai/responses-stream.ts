@@ -10,7 +10,7 @@ import { SseParser } from '../../../shared/sse.ts';
  */
 export type ResponsesEvent =
   | { kind: 'delta'; text: string }
-  | { kind: 'done'; status: 'completed' | 'incomplete'; reason: string | null; usage: Usage | null }
+  | { kind: 'done'; status: 'completed' | 'incomplete'; reason: string | null; usage: Usage | null; serviceTier?: string }
   | { kind: 'error'; code: string; message: string };
 
 export interface Usage {
@@ -47,16 +47,27 @@ export class ResponsesStreamAdapter {
         continue;
       }
       const type = (typeof ev.type === 'string' ? ev.type : m.event) as string;
-      const response = (ev.response ?? {}) as { incomplete_details?: { reason?: string }; error?: { code?: string; message?: string }; usage?: Usage };
+      const response = (ev.response ?? {}) as {
+        incomplete_details?: { reason?: string };
+        error?: { code?: string; message?: string };
+        usage?: Usage;
+        service_tier?: string;
+      };
       switch (type) {
         case 'response.output_text.delta':
           if (typeof ev.delta === 'string' && ev.delta) out.push({ kind: 'delta', text: ev.delta });
           break;
         case 'response.completed':
-          out.push({ kind: 'done', status: 'completed', reason: null, usage: response.usage ?? null });
+          out.push({ kind: 'done', status: 'completed', reason: null, usage: response.usage ?? null, serviceTier: response.service_tier });
           break;
         case 'response.incomplete':
-          out.push({ kind: 'done', status: 'incomplete', reason: response.incomplete_details?.reason ?? null, usage: response.usage ?? null });
+          out.push({
+            kind: 'done',
+            status: 'incomplete',
+            reason: response.incomplete_details?.reason ?? null,
+            usage: response.usage ?? null,
+            serviceTier: response.service_tier,
+          });
           break;
         case 'response.failed':
           out.push({ kind: 'error', code: response.error?.code ?? 'response_failed', message: response.error?.message ?? 'Response failed' });

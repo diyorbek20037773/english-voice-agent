@@ -42,6 +42,7 @@ nusxalab qoʻying → **Update Variables**.
 | `OPENAI_DETAILED_REASONING` | `low` | |
 | `ANSWER_DAILY_LIMIT` | `200` | Kunlik javob chegarasi (byudjet himoyasi) |
 | `CANDIDATE_PROFILE` | CV asosidagi professional faktlar (inglizcha, kontaktlarsiz) | Har bir javob shu faktlarga tayanadi; uydirma qoʻshilmaydi |
+| `OPENAI_SERVICE_TIER` | `fast` | OpenAI Fast mode: birinchi soʻz barqarorroq tez chiqadi; token narxi 2× (1000 javob ≈ $0.30) |
 | `TARGET_ROLE` | `AI Solutions Engineer` | Javoblar shu lavozim nuqtai nazaridan beriladi |
 
 ## 3. Sozlamalar (Settings)

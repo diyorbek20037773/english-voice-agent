@@ -128,3 +128,14 @@ A rendered screenshot of "Longest Substring Without Repeating Characters" sent t
 edge cases, O(n) time; first text 2.7 s, full answer 5.0 s. MOCKED tests cover the request shape
 (input_text + input_image), the 8 MB route limit (other routes stay at 32 KB) and rejection of
 non-image or URL inputs. Phone camera capture itself is not yet tested on a device.
+
+## Log review (2026-10-15, production)
+
+Runtime logs of deployment 299d4234 (owner usage, 25 answers): no warnings/errors, no restarts,
+24 done + 1 cancelled. Server first text p50 1.7 s, p95 6.9 s; the slow tail came from OpenAI (headers
+in ~0.5 s, first text after 6.9-8.7 s, reasoning none). Bots probed ~40 config paths; `/.env`,
+`/public/.env`, `/.git/config` returned 200 with the SPA index.html (721 B, no secrets) — now 404.
+A/B from the laptop direct to OpenAI (12 each, our real prompt): standard TTFT p50 858 / max 2609 ms,
+Fast mode p50 1030 / max 1403 ms. Production now uses OPENAI_SERVICE_TIER=fast (logged per answer as
+serviceTier); first checks: first text 0.6-0.9 s server-side. The firstPartialMs metric was inflated
+for questions merged with held context and is fixed.

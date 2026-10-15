@@ -144,9 +144,13 @@ railway down -y
 Qayta yoqish (interviewdan ~5 daqiqa oldin), keyin tekshirish:
 
 ```powershell
-railway redeploy -y
+railway redeploy --from-source -y
 curl https://english-voice-agent-production.up.railway.app/healthz   # {"status":"ok"}
 ```
+
+`--from-source` shart: busiz `railway redeploy` toʻxtatilgan servisda **eski** commit'ni qayta quradi
+(2026-10-15 sinovida eski `ef246df` olindi va `CANDIDATE_PROFILE` chegarasi tufayli ishga tushmadi).
+`--from-source` bilan `main` dagi oxirgi commit ~25 s da ishga tushdi.
 
 Diqqat: `main` ga har bir `git push` servisni avtomatik qayta yoqadi (GitHub orqali deploy).
 Toʻxtatilgan paytda push qilsangiz, deploy tugagach yana `railway down -y`.
